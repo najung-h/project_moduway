@@ -8,6 +8,7 @@ import PostDetailPage from '@/pages/community/PostDetailPage.vue'
 import GuidePage from '@/pages/GuidePage.vue'
 import LoginPage from '@/pages/LoginPage.vue'
 import SignupPage from '@/pages/SignupPage.vue'
+import PreferenceSettingPage from '@/pages/PreferenceSettingPage.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -61,6 +62,11 @@ const router = createRouter({
       path: '/signup',
       name: 'signup',
       component: SignupPage,
+    },
+    {
+      path: '/preferences',
+      name: 'preferences',
+      component: PreferenceSettingPage,
     },
     // 다른 라우트들은 작업하면서 추가
   ],
