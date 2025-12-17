@@ -4,6 +4,8 @@ import CourseListPage from '@/pages/CourseListPage.vue'
 import MyPage from '@/pages/MyPage.vue'
 import CommunityBoardPage from '@/pages/community/CommunityBoardPage.vue'
 import GuidePage from '@/pages/GuidePage.vue'
+import LoginPage from '@/pages/LoginPage.vue'
+import SignupPage from '@/pages/SignupPage.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -32,6 +34,16 @@ const router = createRouter({
       path: '/guide',
       name: 'guide',
       component: GuidePage,
+    },
+    {
+      path: '/login',
+      name: 'login',
+      component: LoginPage,
+    },
+    {
+      path: '/signup',
+      name: 'signup',
+      component: SignupPage,
     },
     // 다른 라우트들은 작업하면서 추가
   ],
