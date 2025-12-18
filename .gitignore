@@ -445,3 +445,6 @@ pyrightconfig.json
 
 **/html_temp/
 **/.vscode/
+
+**/**.csv
+**/**.json
