@@ -170,3 +170,50 @@ class Scrap(models.Model):
 
     def __str__(self):
         return f'{self.user.username} scraps {self.post.title}'
+
+
+
+class PostLike(models.Model):
+    """
+    [설계의도]
+    - 게시글 좋아요 기능의 실체 테이블 (중개 모델)
+    - 단순 M:N 관계 테이블과 달리 '좋아요를 누른 시점(created_at)'을 기록하기 위해 별도 모델로 정의
+
+    [ 왜 필요한가? ]
+    - 좋아요 누른 시점을 기록하여 활동 로그, 통계 등에 활용 가능
+    - 기능 구현: '최근에 좋아요한 글 모아보기'나 알림에 정확한 시간을 표시하는 등 시점 기반의 UX를 제공하기 위해서
+    - 서비스 확장: 단시간에 좋아요가 급등하는 '실시간 인기글' 알고리즘을 만들거나, 비정상적인 매크로 활동을 탐지하기 위해서
+    
+    [상세고려사항]
+    - Post 모델의 likes 필드에서 through='PostLike' 옵션을 통해 사용됨
+    - 한 사용자가 같은 글에 중복으로 좋아요를 누를 수 없도록 UniqueConstraint 적용
+    """
+    post = models.ForeignKey(
+        'Post',
+        on_delete=models.CASCADE,
+        related_name='post_likes',
+        help_text="좋아요 대상 게시글"
+    )
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='post_likes',
+        help_text="좋아요를 누른 사용자"
+    )
+    created_at = models.DateTimeField(auto_now_add=True, help_text="좋아요 누른 시간")
+
+    class Meta:
+        db_table = 'community_post_likes'
+        verbose_name = '게시글 좋아요'
+        verbose_name_plural = '게시글 좋아요 목록'
+        ordering = ['-created_at']
+        
+        constraints = [
+            models.UniqueConstraint(
+                fields=['user', 'post'], # fields: 유니크 조합을 체크할 필드 목록
+                name='unique_user_post_like' # name: 데이터베이스 내에서 이 제약조건을 식별할 고유 이름 (필수)
+            )
+        ]
+
+    def __str__(self):
+        return f"{self.user.username} likes {self.post.title}"
