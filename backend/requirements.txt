@@ -11,4 +11,5 @@ gunicorn
 PyJWT
 cryptography
 pgvector==0.4.2
-elasticsearch==9.2.0
+elasticsearch==8.11.1
+numpy==1.26.4
