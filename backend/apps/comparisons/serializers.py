@@ -3,27 +3,29 @@
 """
 # 개요
 
-0. 사용자 입력 검증 
+0. 사용자 입력 검증
 0.1  UserPreferencesSerializer             | 사용자 선호도 입력 검증
-0.2  PersonalizedCommentSerializer        | AI 맞춤 코멘트 응답 직렬화
-0.3  ReviewContentSerializer              | 리뷰 요약 응답 직렬화 (0.4 하위)
-0.4  ReviewSummarySerializer              | 리뷰 요약 응답 직렬화 (0.3 상위)
 
-1. 강좌 관련
-1.1  SimpleCourseSerializer                |  강좌 비교 분석 결과에서 강좌 기본 정보 제공
+1. 실시간 AI 코멘트
+1.1  PersonalizedCommentSerializer        | AI 맞춤 코멘트 응답 직렬화
+1.2.1  ReviewContentSerializer            | 리뷰 요약 응답 직렬화 (1.2 간단)
+1.2.2  ReviewSummarySerializer            | 리뷰 요약 응답 직렬화 (1.2 상세)
 
-2. AI 평가 관련
-2.1 CourseAIReviewSerializer               | LLM이 생성한 강좌 평가 정보 제공
-2.2 CourseAIReviewDetailSerializer         | 특정 강좌의 AI 평가 상세 조회용
+2. 강좌 관련
+2.1  SimpleCourseSerializer                |  강좌 비교 분석 결과에서 강좌 기본 정보 제공
 
-3. 강좌 비교 분석 Request/Response
-3.1  ComparisonAnalyzeRequestSerializer    | 강좌 비교 분석 요청 검증
-3.2  ComparisonAnalyzeResponseSerializer   | 강좌 비교 분석 최종 응답 직렬화
-3.3  ComparisonResultSerializer            | 강좌별 비교 분석 결과 직렬화
+3. AI 평가 관련
+3.1 CourseAIReviewSerializer               | LLM이 기생성한 강좌 평가 정보 제공
+3.2 CourseAIReviewDetailSerializer         | 특정 강좌의 AI 평가 상세 조회용
 
 4. 부가 Serializer
 4.1  SentimentResultSerializer             | 감성분석 결과 직렬화
 4.2  TimelineResultSerializer              | 타임라인 시뮬레이션 결과 직렬화
+
+5. 강좌 비교 분석 Request/Response
+5.1  ComparisonAnalyzeRequestSerializer    | 강좌 비교 분석 요청 검증
+5.2  ComparisonResultSerializer            | 강좌별 비교 분석 결과 직렬화
+5.3  ComparisonAnalyzeResponseSerializer   | 강좌 비교 분석 최종 응답 직렬화
 
 
 [참고사항]
@@ -63,6 +65,9 @@ MAX_VALUE = 5 # 평가 결정 요인 -> 사용자가 평가한 중요도 최대�
 USER_GOAL_MIN_LENGTH = 10   # 사용자 학습 목표 최소 길이
 USER_GOAL_MAX_LENGTH = 1000  # 사용자 학습 목표 최대 길이
 
+# =========================
+# 0. 사용자 입력 검증
+# =========================
 
 # 0.1 UserPreferencesSerializer | 사용자 선호도 입력 검증
 class UserPreferencesSerializer(serializers.Serializer):
@@ -98,7 +103,12 @@ class UserPreferencesSerializer(serializers.Serializer):
         help_text="학습 기간 선호도 (0: 짧음, 5: 김)"
     )
 
-# 0.2 PersonalizedCommentSerializer | AI 맞춤 코멘트 응답 직렬화
+
+# =========================
+# 1. 실시간 AI 코멘트
+# =========================
+
+# 1.1 PersonalizedCommentSerializer | AI 맞춤 코멘트 응답 직렬화
 class PersonalizedCommentSerializer(serializers.Serializer):
     """
     [설계 의도]
@@ -139,7 +149,7 @@ class PersonalizedCommentSerializer(serializers.Serializer):
                 ret['course_id'] = None  # 안전하게 None 처리(프론트에서 예외 덜 나게)
         return ret  # 최종 응답 dict 반환
 
-# 0.3 ReviewContentSerializer | 리뷰 요약 응답 직렬화
+# 1.2.1 ReviewContentSerializer | 리뷰 요약 응답 직렬화
 class ReviewContentSerializer(serializers.Serializer): 
     """
     [설계 의도]
@@ -165,7 +175,7 @@ class ReviewContentSerializer(serializers.Serializer):
     )
 
     
-# 0.4 ReviewSummarySerializer | 리뷰 요약 응답 직렬화
+# 1.2.2 ReviewSummarySerializer | 리뷰 요약 응답 직렬화
 class ReviewSummarySerializer(serializers.Serializer):
     """
     [설계 의도]
@@ -199,10 +209,10 @@ class ReviewSummarySerializer(serializers.Serializer):
 
 
 # =========================
-# 1. 강좌 관련 Serializer
+# 2. 강좌 관련 Serializer
 # =========================
 
-# 1.1 SimpleCourseSerializer | 강좌 비교 분석 결과에서 강좌 기본 정보 제공
+# 2.1 SimpleCourseSerializer | 강좌 비교 분석 결과에서 강좌 기본 정보 제공
 class SimpleCourseSerializer(serializers.ModelSerializer):
     """
     [설계 의도]
@@ -233,10 +243,10 @@ class SimpleCourseSerializer(serializers.ModelSerializer):
 
 
 # =========================
-# 2. AI 평가 관련 Serializer
+# 3. AI 평가 관련 Serializer
 # =========================
 
-# 2.1 CourseAIReviewSerializer | LLM이 생성한 강좌 평가 정보 제공
+# 3.1 CourseAIReviewSerializer | LLM이 기생성한 강좌 평가 정보 제공
 class CourseAIReviewSerializer(serializers.ModelSerializer):
     """
     [설계 의도]
@@ -267,7 +277,7 @@ class CourseAIReviewSerializer(serializers.ModelSerializer):
         )
         read_only_fields = fields
 
-# 2.2 CourseAIReviewDetailSerializer | 특정 강좌의 AI 평가 상세 조회용 -> GET /api/v1/comparisons/courses/{course_id}/ai-review/
+# 3.2 CourseAIReviewDetailSerializer | 특정 강좌의 AI 평가 상세 조회용 -> GET /api/v1/comparisons/courses/{course_id}/ai-review/
 class CourseAIReviewDetailSerializer(serializers.ModelSerializer):
     """
     [설계 의도]
@@ -299,10 +309,73 @@ class CourseAIReviewDetailSerializer(serializers.ModelSerializer):
 
 
 # =========================
-# 3. 강좌 비교 분석 Request/Response Serializer
+# 4. 부가 Serializer
 # =========================
 
-# 3.1 ComparisonAnalyzeRequestSerializer | 강좌 비교 분석 요청 검증
+# 4.1 SentimentResultSerializer | 감성분석 결과 직렬화
+class SentimentResultSerializer(serializers.Serializer):
+    """
+    [설계 의도]
+    - 감성분석 결과 직렬화
+    - SentimentService에서 계산한 데이터를 구조화
+
+    [상세 고려 사항]
+    - 모델에 매핑되지 않는 계산 데이터이므로 Serializer 사용
+    - read_only로 출력 전용
+    """
+
+    positive_ratio = serializers.FloatField(
+        read_only=True,
+        help_text="긍정 리뷰 비율 (%)"
+    )
+    review_count = serializers.IntegerField(
+        read_only=True,
+        help_text="총 리뷰 개수"
+    )
+    # NOTE 신뢰도는 'high' | 'low' 문자열로 표현, 추후 INT 등급으로 변경 검토 가능
+    reliability = serializers.CharField(
+        read_only=True,
+        help_text="신뢰도 (high | low)"
+    )
+
+# 4.2 TimelineResultSerializer | 타임라인 시뮬레이션 결과 직렬화
+class TimelineResultSerializer(serializers.Serializer):
+    """
+    [설계 의도]
+    - "내가 이 강의 완강할 수 있을까?" 타임라인 시뮬레이션 결과 직렬화
+    - TimelineService에서 계산한 데이터를 구조화
+
+    [상세 고려 사항]
+    - 계산 데이터이므로 Serializer 사용
+    - read_only로 출력 전용
+    """
+
+    min_hours_per_week = serializers.IntegerField(
+        read_only=True,
+        help_text="주당 필요 학습 시간"
+    )
+    total_weeks = serializers.IntegerField(
+        read_only=True,
+        help_text="총 학습 주차"
+    )
+    remaining_weeks = serializers.IntegerField(
+        read_only=True,
+        help_text="남은 주차"
+    )
+    status = serializers.CharField(
+        read_only=True,
+        help_text="학습 강도 (적정 | 널널 | 빠듯 | 종료)" # Threshold 기준은 우선 0.8, 1.2 -> TimelineService 참고
+    )
+    ratio = serializers.FloatField(
+        read_only=True,
+        help_text="필요시간/가능시간 비율"
+    )
+    
+# =========================
+# 5. 강좌 비교 분석 Request/Response
+# =========================
+
+# 5.1 ComparisonAnalyzeRequestSerializer | 강좌 비교 분석 요청 검증
 class ComparisonAnalyzeRequestSerializer(serializers.Serializer):
     """
     [설계 의도]
@@ -389,7 +462,7 @@ class ComparisonAnalyzeRequestSerializer(serializers.Serializer):
 
         return stripped_value
 
-# 3.2 ComparisonResultSerializer | 강좌별 비교 분석 결과 직렬화
+# 5.2 ComparisonResultSerializer | 강좌별 비교 분석 결과 직렬화
 class ComparisonResultSerializer(serializers.Serializer):
     """
     [설계 의도]
@@ -410,7 +483,7 @@ class ComparisonResultSerializer(serializers.Serializer):
     personalized_comment = PersonalizedCommentSerializer(read_only=True, help_text="개인화 코멘트")
     review_summary = ReviewSummarySerializer(read_only=True, help_text="리뷰 요약")
 
-# 3.3 ComparisonAnalyzeResponseSerializer | 강좌 비교 분석 최종 응답 직렬화
+# 5.3 ComparisonAnalyzeResponseSerializer | 강좌 비교 분석 최종 응답 직렬화
 class ComparisonAnalyzeResponseSerializer(serializers.Serializer):
     """
     [설계 의도]
@@ -424,70 +497,6 @@ class ComparisonAnalyzeResponseSerializer(serializers.Serializer):
         help_text="비교 분석 결과 리스트 (매칭 점수 내림차순)"
     )
 
-
-# =========================
-# 4. 부가 Serializer
-# =========================
- 
-
-# 4.1 SentimentResultSerializer | 감성분석 결과 직렬화
-class SentimentResultSerializer(serializers.Serializer):
-    """
-    [설계 의도]
-    - 감성분석 결과 직렬화
-    - SentimentService에서 계산한 데이터를 구조화
-
-    [상세 고려 사항]
-    - 모델에 매핑되지 않는 계산 데이터이므로 Serializer 사용
-    - read_only로 출력 전용
-    """
-
-    positive_ratio = serializers.FloatField(
-        read_only=True,
-        help_text="긍정 리뷰 비율 (%)"
-    )
-    review_count = serializers.IntegerField(
-        read_only=True,
-        help_text="총 리뷰 개수"
-    )
-    # NOTE 신뢰도는 'high' | 'low' 문자열로 표현, 추후 INT 등급으로 변경 검토 가능
-    reliability = serializers.CharField(
-        read_only=True,
-        help_text="신뢰도 (high | low)"
-    )
-
-# 4.2 TimelineResultSerializer | 타임라인 시뮬레이션 결과 직렬화
-class TimelineResultSerializer(serializers.Serializer):
-    """
-    [설계 의도]
-    - "내가 이 강의 완강할 수 있을까?" 타임라인 시뮬레이션 결과 직렬화
-    - TimelineService에서 계산한 데이터를 구조화
-
-    [상세 고려 사항]
-    - 계산 데이터이므로 Serializer 사용
-    - read_only로 출력 전용
-    """
-
-    min_hours_per_week = serializers.IntegerField(
-        read_only=True,
-        help_text="주당 필요 학습 시간"
-    )
-    total_weeks = serializers.IntegerField(
-        read_only=True,
-        help_text="총 학습 주차"
-    )
-    remaining_weeks = serializers.IntegerField(
-        read_only=True,
-        help_text="남은 주차"
-    )
-    status = serializers.CharField(
-        read_only=True,
-        help_text="학습 강도 (적정 | 널널 | 빠듯 | 종료)" # Threshold 기준은 우선 0.8, 1.2 -> TimelineService 참고
-    )
-    ratio = serializers.FloatField(
-        read_only=True,
-        help_text="필요시간/가능시간 비율"
-    )
 
 
 
