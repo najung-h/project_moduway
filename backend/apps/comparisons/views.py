@@ -8,6 +8,9 @@
 2. 강좌 AI 평가 조회
 2.1 CourseAIReviewDetailView   | 강좌 AI 평가 조회 API
 
+3. 리뷰 요약 생성
+3.1 CourseReviewSummaryView    | 강좌 리뷰 요약 생성 API
+
 [구조]
 1.1 ComparisonAnalyzeView
   1) 요청 검증 `ComparisonAnalyzeRequestSerializer` 사용
@@ -334,6 +337,7 @@ class CourseAIReviewDetailView(APIView):
 # 3. 리뷰 요약 생성 API
 # =========================
 
+# 3.1 CourseReviewSummaryView | 강좌 리뷰 요약 생성 API
 class CourseReviewSummaryView(APIView):
     """
     [API]
