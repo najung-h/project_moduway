@@ -45,6 +45,11 @@
   # TODO: 추후 비로그인 사용자 접근 허용(AllowAny) 검토 필요
 - select_related 등을 활용한 쿼리 최적화
 - 클라이언트가 원인을 쉽게 파악할 수 있도록 명확한 에러 메시지 제공
+# TODO
+- 향후 캐싱 도입 검토
+- LLM 호출을 강좌별로 병렬 처리
+- Celery + asyncio 조합 검토 -> 응답 시간 단축 목적
+- 프롬프트 버저닝 -> 프롬프트 변경 시점 추적 및 재생산성 확보
 """
 
 from rest_framework.views import APIView
@@ -59,13 +64,17 @@ from apps.comparisons.serializers import (
     ComparisonAnalyzeRequestSerializer,
     ComparisonAnalyzeResponseSerializer,
     ComparisonResultSerializer,
-    CourseAIReviewDetailSerializer
+    CourseAIReviewDetailSerializer,
+    ReviewSummarySerializer
 )
 from apps.comparisons.services import (
     get_sentiment_service,
     get_timeline_service,
-    get_score_service
+    get_score_service,
+    get_llm_service
 )
+import logging
+logger = logging.getLogger(__name__)
 
 
 # =========================
@@ -104,6 +113,8 @@ class ComparisonAnalyzeView(APIView):
            - 매칭 점수 계산
            - 감성분석 수행
            - 타임라인 시뮬레이션
+           - AI 맞춤 코멘트 생성
+           - 강의 리뷰 요약 생성
         4. 매칭 점수 기준 정렬
         5. 응답 반환
         """
@@ -119,6 +130,7 @@ class ComparisonAnalyzeView(APIView):
         course_ids = request_serializer.validated_data['course_ids']
         weekly_hours = request_serializer.validated_data['weekly_hours']
         user_preferences = request_serializer.validated_data['user_preferences']
+        user_goal = request_serializer.validated_data['user_goal']
 
         # 2. 강좌 조회 (AI 평가 포함)
         # select_related('ai_review'):
@@ -146,6 +158,7 @@ class ComparisonAnalyzeView(APIView):
         sentiment_service = get_sentiment_service()
         timeline_service = get_timeline_service()
         score_service = get_score_service()
+        llm_service = get_llm_service()
 
         # 4. 각 강좌별 분석 수행
         results = []
@@ -157,7 +170,7 @@ class ComparisonAnalyzeView(APIView):
             except CourseAIReview.DoesNotExist:
                 # NOTE
                 # AI 평가가 없는 강좌는 스킵
-                # UX관점에서 (1) 전체 실패를 하거나 (2) AI 평가 부분만 NULL로 보내서 프론트엔드에서 "평가 준비중" 표시하는 방안도 고려 가능
+                # # TODO UX관점에서 (1) 전체 실패를 하거나 (2) AI 평가 부분만 NULL로 보내서 프론트엔드에서 "평가 준비중" 표시하는 방안도 고려 가능
                 continue
 
             # 4-2. 매칭 점수 계산
@@ -177,13 +190,69 @@ class ComparisonAnalyzeView(APIView):
                 weekly_hours=weekly_hours
             )
 
-            # 4-5. 결과 데이터 구성
+            # 4-5. 맞춤 코멘트 생성
+            try:
+                personalized_comment = llm_service.generate_personalized_comment(
+                    course=course,
+                    ai_review=ai_review,
+                    user_goal=user_goal,
+                )
+            # LLM 호출 과정에서 발생할 수 있는 모든 예외를 포괄적으로 처리
+            # 네트워크 오류, 타임아웃, API 제한 초과, JSON 파싱 오류 등
+            except Exception as e: 
+                # LLM 호출 실패 시 로그로 기록하여 추후 디버깅/모니터링 가능하게 함.
+                logger.warning(
+                    f'리뷰 요약 생성 실패 (Course {course.id}): {str(e)}',
+                    # 어떤 강좌에서 실패했는지 + 예외 메시지를 함께 기록
+                    exc_info=True # trackbqack까지 로그에 남김.
+                )
+                # LLM 호출 실패 시데오 API응답 구조를 깨뜨리지 않기 위한 gracefull  fallback 처리
+                # 전체 요청을 실패시키지 않고 안내 메시지 제공
+                personalized_comment = {
+                    'course_id': course.id,
+                    # 실패했더라도 UI에서 강좌 이름은 보여줄 수 있도록 함.
+                    'course_name': course.name,
+                    # 사용자에게 안내 메시지 제공
+                    'recommendation_reason': '현재 개인화 추천을 생성할 수 없습니다. 잠시 후 다시 시도해주세요.',
+                    # 빈 리스트만 제공.
+                    'key_points': []
+                }
+
+                
+            # 4-6. 리뷰 요약 생성
+            try:
+                review_summary = llm_service.generate_review_summary(
+                    course_id=course.id
+                )
+            except Exception as e:
+                # LLM 호출 실패 시 로그로 기록
+                logger.warning(
+                    f'리뷰 요약 생성 실패 (Course {course.id}): {str(e)}',
+                    exc_info=True
+                )
+                # gracefull fallback 처리
+                review_summary = {
+                    'course_id': course.id,
+                    'course_name': course.name,
+                    'review_summary': {  
+                        'summary': '현재 리뷰 요약을 생성할 수 없습니다. 잠시 후 다시 시도해주세요.',
+                        'pros': [],
+                        'cons': []
+                    },
+                    'review_count': 0,
+                    'reliability': 'low',
+                    'warning_message': '리뷰 요약 생성에 실패했습니다.'
+                }
+
+            # 4-7. 결과 데이터 구성
             result_data = {
                 'course': course,
                 'ai_review': ai_review,
                 'match_score': match_score,
                 'sentiment': sentiment_result,
-                'timeline': timeline_result
+                'timeline': timeline_result,
+                'personalized_comment': personalized_comment,
+                'review_summary': review_summary
             }
 
             results.append(result_data)
@@ -255,6 +324,77 @@ class CourseAIReviewDetailView(APIView):
 
         # 3. 직렬화 및 응답
         serializer = CourseAIReviewDetailSerializer(ai_review)
+
+        return Response(
+            serializer.data,
+            status=status.HTTP_200_OK
+        )
+    
+# =========================
+# 3. 리뷰 요약 생성 API
+# =========================
+
+class CourseReviewSummaryView(APIView):
+    """
+    [API]
+    - GET: /api/v1/comparisons/courses/{course_id}/review-summary/
+
+    [설계 의도]
+    - 특정 강좌의 리뷰를 실시간으로 요약하여 정보 제공
+    - courses앱의 강좌 상세 페이지에서 재사용 가능
+    - comparisonanalyze api와 분리하여 독립적 호출 지원
+
+    [상세 고려 사항]
+    - 인증 필요 (전역 설정 IsAuthenticated)
+    # NOTE 비로그인 사용자도 체험 가능하게 할지에 대해서 -> 추후 변경 검토
+    - 리뷰 요약 생성 실패 시 적절한 에러 메시지 반환
+    # TODO: 향후 캐싱 도입 검토
+    - LLM 호출 실패 시 graceful fallback 처리
+    """
+
+
+    def get(self, request, course_id):
+        """
+        강좌 리뷰 요약 조회
+
+        Args:
+            course_id: URL path에서 전달된 강좌 ID
+
+        Returns:
+            200: 리뷰 요약 정보
+            404: 강좌 없음
+            500: 리뷰 요약 생성 실패
+        """
+        # 1. 강좌 존재 여부 확인
+        course = get_object_or_404(Course, pk=course_id)
+
+        # 2. 서비스 인스턴스 가져오기 (싱글톤)
+        llm_service = get_llm_service()
+
+        # 3. 리뷰 요약 생성
+        try:
+            review_summary = llm_service.generate_review_summary(
+                course_id=course.id
+            )
+        except Exception as e:
+            # LLM 호출 실패 시 에러 로깅 후 fallback 메시지 반환
+            # 전체 요청을 500으로 실패시키지 않고 안내 메시지 제공
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(
+                f'리뷰 요약 생성 실패 (Course {course_id}): {str(e)}',
+                exc_info=True
+            )
+
+            review_summary = {
+                'summary': '일시적으로 리뷰 요약을 제공할 수 없습니다. 잠시 후 다시 시도해주세요.',
+                'review_count': 0,
+                'reliability': 'low',
+                'warning_message': 'LLM 서비스 일시적 오류가 발생했습니다'
+            }
+
+        # 4. 직렬화 및 응답
+        serializer = ReviewSummarySerializer(review_summary)
 
         return Response(
             serializer.data,
