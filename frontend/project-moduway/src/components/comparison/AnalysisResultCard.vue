@@ -33,7 +33,10 @@
         🕒 타임라인 시뮬레이션
         <span v-if="result.timelineStatus" class="status-badge">{{ result.timelineStatus }}</span>
       </div>
-      <p>
+      <p v-if="result.timelineStatus === '종료'">
+        이미 종료된 강의입니다. (수강 기간 만료)
+      </p>
+      <p v-else>
         수강 종료일까지 매주 <span class="highlight">{{ result.minHoursPerWeek }}시간</span> 이상의 학습이 권장됩니다.
         <template v-if="result.remainingWeeks">
           (남은 기간: {{ result.remainingWeeks }}주 / 전체 {{ result.totalWeeks }}주)
