@@ -64,11 +64,11 @@ class TimelineService:
         # =========================
         # 1. 총 학습 시간 계산
         # =========================
-        # course_playtime은 "분 단위"로 저장되어 있으므로 시간 단위로 변환
+        # course_playtime은 "초 단위"로 저장되어 있으므로 시간 단위로 변환
         playtime_raw = course.course_playtime or 0
 
         if playtime_raw > 0:
-            total_hours = playtime_raw / 60
+            total_hours = playtime_raw / 3600
         else:
             # 학습 시간이 없거나 0인 경우
             total_hours = float(playtime_raw)
