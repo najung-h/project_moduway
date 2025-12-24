@@ -114,7 +114,7 @@
       <section class="panel">
         <h2 class="panel-title gray" style="justify-content: space-between;">
           <span>03. 강좌 선택</span>
-          <span class="count-badge">{{ comparisonStore.count }}/3</span>
+          <span class="count-badge">{{ comparisonStore.count }}/4</span>
         </h2>
 
         <div class="wishlist-container custom-scrollbar">
@@ -204,9 +204,9 @@ const toggleSelection = (course) => {
   if (comparisonStore.isAdded(course.id)) {
     comparisonStore.removeItem(course.id);
   } else {
-    // 이미 3개 꽉 찼고, 선택되지 않은 것을 선택하려 할 때
-    if (comparisonStore.count >= 3) {
-      alert("최대 3개 강좌까지 분석할 수 있습니다.");
+    // 이미 4개 꽉 찼고, 선택되지 않은 것을 선택하려 할 때
+    if (comparisonStore.count >= 4) {
+      alert("최대 4개 강좌까지 분석할 수 있습니다.");
       return;
     }
     comparisonStore.addItem(course);

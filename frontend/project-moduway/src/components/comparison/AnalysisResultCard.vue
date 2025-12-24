@@ -1,5 +1,5 @@
 <template>
-  <div class="result-card">
+  <div class="result-card" :class="{ open: isOpen }">
     <div class="card-header">
       <div class="info-area">
         <div class="badges">
@@ -28,120 +28,141 @@
       </div>
     </div>
 
-    <div class="simulation-box" :class="getTimelineStatusClass(result.timelineStatus)">
-      <div class="sim-title">
-        🕒 타임라인 시뮬레이션
-        <span v-if="result.timelineStatus" class="status-badge">{{ result.timelineStatus }}</span>
-      </div>
-      <p>
-        수강 종료일까지 매주 <span class="highlight">{{ result.minHoursPerWeek }}시간</span> 이상의 학습이 권장됩니다.
-        <template v-if="result.remainingWeeks">
-          (남은 기간: {{ result.remainingWeeks }}주 / 전체 {{ result.totalWeeks }}주)
-        </template>
-      </p>
+    <!-- 핵심 포인트 (항상 보임) -->
+    <div v-if="result.personalized_comment && result.personalized_comment.key_points" class="key-points-section">
+      <div class="points-title">📌 핵심 포인트</div>
+      <ul class="points-list">
+        <li v-for="(point, index) in result.personalized_comment.key_points" :key="index">
+          {{ point }}
+        </li>
+      </ul>
     </div>
 
-    <div class="details-area">
-      <!-- 1. 분석 요약 -->
-      <div class="metrics-grid">
-        <div class="metric">
-          <span class="metric-label">긍정 리뷰 비율</span>
-          <span class="metric-value positive">{{ result.sentiment }}% Positive</span>
+    <!-- 상세 보기 토글 버튼 -->
+    <button class="btn-toggle-details" @click="isOpen = !isOpen">
+      {{ isOpen ? '접기 ▲' : '더 보기 ▼' }}
+    </button>
+
+    <!-- 상세 내용 (토글됨) -->
+    <div v-show="isOpen" class="details-content">
+      <div class="simulation-box" :class="getTimelineStatusClass(result.timelineStatus)">
+        <div class="sim-title">
+          🕒 타임라인 시뮬레이션
+          <span v-if="result.timelineStatus" class="status-badge">{{ result.timelineStatus }}</span>
         </div>
-        <div class="metric right">
-          <span class="metric-label">리뷰 개수</span>
-          <span class="metric-value">{{ result.reviewCount }}개</span>
+        <p v-if="result.timelineStatus === '종료'">
+          이미 종료된 강의입니다. (수강 기간 만료)
+        </p>
+        <p v-else>
+          수강 종료일까지 매주 <span class="highlight">{{ result.minHoursPerWeek }}시간</span> 이상의 학습이 권장됩니다.
+          <template v-if="result.remainingWeeks">
+            (남은 기간: {{ result.remainingWeeks }}주 / 전체 {{ result.totalWeeks }}주)
+          </template>
+        </p>
+      </div>
+
+      <div class="details-area">
+        <!-- 1. 분석 요약 -->
+        <div class="metrics-grid">
+          <div class="metric">
+            <span class="metric-label">긍정 리뷰 비율</span>
+            <span class="metric-value positive">{{ result.sentiment }}% Positive</span>
+          </div>
+          <div class="metric right">
+            <span class="metric-label">리뷰 개수</span>
+            <span class="metric-value">{{ result.reviewCount }}개</span>
+          </div>
+        </div>
+
+        <!-- 리뷰 요약 -->
+        <div class="ai-summary">
+          <span class="metric-label">강좌 리뷰 요약</span>
+          <p class="summary-text">{{ result.reviewSummary }}</p>
+
+          <!-- 장단점 표시 (있는 경우만) -->
+          <div v-if="result.reviewPros && result.reviewPros.length > 0" class="pros-cons">
+            <div class="pros">
+              <div class="section-title">👍 장점</div>
+              <ul>
+                <li v-for="(pro, index) in result.reviewPros" :key="index">{{ pro }}</li>
+              </ul>
+            </div>
+            <div v-if="result.reviewCons && result.reviewCons.length > 0" class="cons">
+              <div class="section-title">👎 단점</div>
+              <ul>
+                <li v-for="(con, index) in result.reviewCons" :key="index">{{ con }}</li>
+              </ul>
+            </div>
+          </div>
+
+          <p v-if="result.reviewWarning" class="warning-text">⚠️ {{ result.reviewWarning }}</p>
+        </div>
+
+        <!-- 2. 세부 점수 바 차트 -->
+        <div class="scores-bars">
+          <div class="bar-row">
+            <span class="bar-label">이론적 깊이</span>
+            <div class="bar-track-wrapper">
+              <div class="bar-track">
+                <div
+                  class="bar-fill"
+                  :style="{ width: result.scores.theory + '%' }"
+                ></div>
+              </div>
+              <span class="bar-value">{{ Math.round(result.scores.theory) }}</span>
+            </div>
+          </div>
+
+          <div class="bar-row">
+            <span class="bar-label">실무 활용도</span>
+            <div class="bar-track-wrapper">
+              <div class="bar-track">
+                <div
+                  class="bar-fill"
+                  :style="{ width: result.scores.practical + '%' }"
+                ></div>
+              </div>
+              <span class="bar-value">{{ Math.round(result.scores.practical) }}</span>
+            </div>
+          </div>
+
+          <div class="bar-row">
+            <span class="bar-label">학습 난이도</span>
+            <div class="bar-track-wrapper">
+              <div class="bar-track">
+                <div
+                  class="bar-fill"
+                  :style="{ width: result.scores.difficulty + '%' }"
+                ></div>
+              </div>
+              <span class="bar-value">{{ Math.round(result.scores.difficulty) }}</span>
+            </div>
+          </div>
+
+          <div class="bar-row">
+            <span class="bar-label">학습 기간</span>
+            <div class="bar-track-wrapper">
+              <div class="bar-track">
+                <div
+                  class="bar-fill"
+                  :style="{ width: result.scores.duration + '%' }"
+                ></div>
+              </div>
+              <span class="bar-value">{{ Math.round(result.scores.duration) }}</span>
+            </div>
+          </div>
         </div>
       </div>
 
-      <!-- 리뷰 요약 -->
-      <div class="ai-summary">
-        <span class="metric-label">강좌 리뷰 요약</span>
-        <p class="summary-text">{{ result.reviewSummary }}</p>
-
-        <!-- 장단점 표시 (있는 경우만) -->
-        <div v-if="result.reviewPros && result.reviewPros.length > 0" class="pros-cons">
-          <div class="pros">
-            <div class="section-title">👍 장점</div>
-            <ul>
-              <li v-for="(pro, index) in result.reviewPros" :key="index">{{ pro }}</li>
-            </ul>
-          </div>
-          <div v-if="result.reviewCons && result.reviewCons.length > 0" class="cons">
-            <div class="section-title">👎 단점</div>
-            <ul>
-              <li v-for="(con, index) in result.reviewCons" :key="index">{{ con }}</li>
-            </ul>
-          </div>
-        </div>
-
-        <p v-if="result.reviewWarning" class="warning-text">⚠️ {{ result.reviewWarning }}</p>
+      <div class="card-footer">
+        <button class="btn-detail" @click="goToCourseDetail">강좌 상세 정보 및 수강신청</button>
       </div>
-
-      <!-- 2. 세부 점수 바 차트 -->
-      <div class="scores-bars">
-        <div class="bar-row">
-          <span class="bar-label">이론적 깊이</span>
-          <div class="bar-track-wrapper">
-            <div class="bar-track">
-              <div
-                class="bar-fill"
-                :style="{ width: result.scores.theory + '%' }"
-              ></div>
-            </div>
-            <span class="bar-value">{{ Math.round(result.scores.theory) }}</span>
-          </div>
-        </div>
-
-        <div class="bar-row">
-          <span class="bar-label">실무 활용도</span>
-          <div class="bar-track-wrapper">
-            <div class="bar-track">
-              <div
-                class="bar-fill"
-                :style="{ width: result.scores.practical + '%' }"
-              ></div>
-            </div>
-            <span class="bar-value">{{ Math.round(result.scores.practical) }}</span>
-          </div>
-        </div>
-
-        <div class="bar-row">
-          <span class="bar-label">학습 난이도</span>
-          <div class="bar-track-wrapper">
-            <div class="bar-track">
-              <div
-                class="bar-fill"
-                :style="{ width: result.scores.difficulty + '%' }"
-              ></div>
-            </div>
-            <span class="bar-value">{{ Math.round(result.scores.difficulty) }}</span>
-          </div>
-        </div>
-
-        <div class="bar-row">
-          <span class="bar-label">학습 기간</span>
-          <div class="bar-track-wrapper">
-            <div class="bar-track">
-              <div
-                class="bar-fill"
-                :style="{ width: result.scores.duration + '%' }"
-              ></div>
-            </div>
-            <span class="bar-value">{{ Math.round(result.scores.duration) }}</span>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="card-footer">
-      <button class="btn-detail" @click="goToCourseDetail">강좌 상세 정보 및 수강신청</button>
     </div>
   </div>
 </template>
 
 <script setup>
-import { computed } from 'vue';
+import { ref, computed } from 'vue';
 import { useRouter } from 'vue-router';
 
 const props = defineProps({
@@ -152,6 +173,7 @@ const props = defineProps({
 });
 
 const router = useRouter();
+const isOpen = ref(false); // 상세 내용 펼치기 상태
 
 // 원 둘레 길이 (r=36 -> 2 * PI * 36 ≈ 226.1)
 const CIRCUMFERENCE = 226.1;
@@ -205,6 +227,73 @@ const goToCourseDetail = () => {
   transform: translateY(-5px);
 }
 
+.result-card.open {
+  border-color: var(--primary);
+  box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+}
+
+/* Key Points Section */
+.key-points-section {
+  padding: 0 32px 20px 32px;
+}
+
+.points-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--primary-dark);
+  margin-bottom: 8px;
+  text-transform: uppercase;
+}
+
+.points-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.points-list li {
+  font-size: 14px;
+  color: #444;
+  line-height: 1.6;
+  margin-bottom: 6px;
+  padding-left: 20px;
+  position: relative;
+}
+
+.points-list li::before {
+  content: "✔";
+  position: absolute;
+  left: 0;
+  color: var(--primary);
+  font-weight: 800;
+}
+
+/* Toggle Button */
+.btn-toggle-details {
+  width: 100%;
+  padding: 12px;
+  background: #f9fafb;
+  border: none;
+  border-top: 1px solid #f3f4f6;
+  border-bottom: 1px solid #f3f4f6;
+  color: #6b7280;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.btn-toggle-details:hover {
+  background: #f3f4f6;
+  color: var(--primary);
+}
+
+.details-content {
+  /* 펼침 애니메이션은 JS나 transition 컴포넌트로 처리하는게 좋지만, 여기선 단순 v-show */
+  padding-top: 24px;
+}
+
+/* 기존 스타일 */
 .card-header {
   padding: 32px 32px 0 32px;
   display: flex;
