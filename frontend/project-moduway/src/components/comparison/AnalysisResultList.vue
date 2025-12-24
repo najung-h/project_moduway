@@ -10,32 +10,23 @@
 
     <!-- Case 2: 분석 완료 후 (결과 표시) -->
     <template v-else-if="isAnalyzed">
-      <!-- AI Comment Boxes (각 강좌별 개인화 코멘트) -->
-      <div v-if="personalizedComments && personalizedComments.length > 0" class="comments-section">
-        <div
-          v-for="(comment, index) in personalizedComments"
-          :key="index"
-          class="ai-comment-box"
-        >
+      <!-- Top Recommendation Hero (1위 추천 강좌) -->
+      <div v-if="topRecommendation" class="comments-section">
+        <div class="ai-comment-box highlight">
           <div class="comment-content">
+            <!-- 1. 강의 제목 (강조) -->
+            <h2 class="course-name-hero">{{ topRecommendation.course_name }}</h2>
+            
+            <!-- 2. 라벨 및 아이콘 -->
             <div class="comment-header">
-              <span class="pulse-dot"></span>
-              <span class="comment-label">AI 맞춤 코멘트 #{{ index + 1 }}</span>
-              <span class="course-badge">{{ comment.course_name }}</span>
+              <span class="crown-icon">👑</span>
+              <span class="comment-label">AI 최우수 추천 강좌</span>
             </div>
-            <p class="comment-text">"{{ comment.recommendation_reason }}"</p>
-
-            <!-- 핵심 포인트 -->
-            <div v-if="comment.key_points && comment.key_points.length > 0" class="key-points">
-              <div class="points-title">📌 핵심 포인트</div>
-              <ul>
-                <li v-for="(point, pIndex) in comment.key_points" :key="pIndex">{{ point }}</li>
-              </ul>
-            </div>
+            
+            <!-- 3. 추천 코멘트 -->
+            <p class="comment-text">"{{ topRecommendation.recommendation_reason }}"</p>
           </div>
         </div>
-
-        <p class="comment-note">※ AI 분석은 참고용이며 최종 결정은 학습자의 판단이 필요합니다.</p>
       </div>
 
       <!-- Cards Grid -->
@@ -46,6 +37,9 @@
           :result="res"
         />
       </div>
+
+      <!-- 참고 문구 (하단 이동) -->
+      <p class="comment-note">※ AI 분석은 참고용이며 최종 결정은 학습자의 판단이 필요합니다.</p>
     </template>
 
     <!-- Case 3: 분석 전 (사용 가이드) -->
@@ -102,9 +96,10 @@
 </template>
 
 <script setup>
+import { computed } from 'vue';
 import AnalysisResultCard from './AnalysisResultCard.vue';
 
-defineProps({
+const props = defineProps({
   results: {
     type: Array,
     required: true
@@ -121,6 +116,11 @@ defineProps({
     type: Boolean,
     default: false
   }
+});
+
+// 1위 추천 코멘트 (results[0]에 해당하는 코멘트)
+const topRecommendation = computed(() => {
+  return props.personalizedComments.length > 0 ? props.personalizedComments[0] : null;
 });
 </script>
 
@@ -184,102 +184,75 @@ defineProps({
   overflow: hidden;
 }
 
+.ai-comment-box.highlight {
+  border: 2px solid #ffdce0;
+  box-shadow: 0 4px 20px rgba(246, 73, 89, 0.1);
+}
+
 .comment-content {
   position: relative;
   z-index: 1;
+  text-align: center; /* 중앙 정렬로 변경 */
+}
+
+.course-name-hero {
+  font-size: 32px;
+  font-weight: 900;
+  color: #111;
+  margin: 0 0 16px 0;
+  line-height: 1.3;
+  word-break: keep-all;
 }
 
 .comment-header {
-  display: flex;
+  display: inline-flex; /* 인라인 플렉스로 변경하여 중앙 정렬 */
   align-items: center;
   gap: 8px;
-  margin-bottom: 12px;
-  flex-wrap: wrap;
+  margin-bottom: 24px;
+  background: white;
+  padding: 6px 16px;
+  border-radius: 50px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  border: 1px solid #ffe4e6;
 }
 
-.pulse-dot {
-  width: 8px; height: 8px;
-  background: var(--primary);
-  border-radius: 50%;
-  animation: pulse 1.5s infinite;
+.crown-icon {
+  font-size: 20px;
+  animation: bounce 2s infinite;
 }
 
-@keyframes pulse {
-  0% { transform: scale(0.95); opacity: 0.7; }
-  50% { transform: scale(1.1); opacity: 1; }
-  100% { transform: scale(0.95); opacity: 0.7; }
+@keyframes bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-3px); }
 }
 
 .comment-label {
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 800;
   color: var(--primary);
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 0.5px;
 }
 
-.course-badge {
-  background: var(--primary);
-  color: white;
-  padding: 4px 10px;
-  border-radius: 6px;
-  font-size: 11px;
-  font-weight: 700;
-}
+/* 기존 course-badge 제거됨 */
 
 .comment-text {
-  font-size: 16px;
+  font-size: 18px;
   font-weight: 600;
-  color: #111;
+  color: #444;
   line-height: 1.7;
-  margin-bottom: 16px;
-}
-
-.key-points {
-  background: white;
-  border: 1px solid #ffdce0;
-  border-radius: 12px;
-  padding: 16px;
-  margin-top: 12px;
-}
-
-.points-title {
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--primary-dark);
-  margin-bottom: 8px;
-}
-
-.key-points ul {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-}
-
-.key-points li {
-  font-size: 13px;
-  color: #555;
-  line-height: 1.6;
-  margin-bottom: 6px;
-  padding-left: 18px;
-  position: relative;
-}
-
-.key-points li::before {
-  content: "✓";
-  position: absolute;
-  left: 0;
-  color: var(--primary);
-  font-weight: 700;
+  margin-bottom: 0;
+  word-break: keep-all;
+  max-width: 800px;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .comment-note {
-  font-size: 11px;
-  color: #888;
+  font-size: 12px;
+  color: #999;
   text-align: center;
-  padding: 12px;
-  background: #f9f9f9;
-  border-radius: 8px;
+  margin-top: 40px; /* 상단 여백 추가 */
 }
 
 /* Cards Grid */

@@ -24,8 +24,8 @@
               <button class="btn-remove" @click.stop="comparisonStore.removeItem(item.id)">×</button>
             </div>
             
-            <!-- 빈 슬롯 표시 (최대 3개) -->
-            <div v-for="i in (3 - comparisonStore.count)" :key="'empty-'+i" class="thumb-item empty">
+            <!-- 빈 슬롯 표시 (최대 4개) -->
+            <div v-for="i in (4 - comparisonStore.count)" :key="'empty-'+i" class="thumb-item empty">
               <span>+</span>
             </div>
           </div>

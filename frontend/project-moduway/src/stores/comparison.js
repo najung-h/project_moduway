@@ -24,13 +24,13 @@ export const useComparisonStore = defineStore('comparison', () => {
       alert('이미 분석함에 담긴 강좌입니다.');
       return;
     }
-    // 최대 3개 제한
-    if (items.value.length >= 3) {
-      alert('최대 3개 강좌까지 분석할 수 있습니다.');
+    // 최대 4개 제한
+    if (items.value.length >= 4) {
+      alert('최대 4개 강좌까지 분석할 수 있습니다.');
       return;
     }
     
-    // 필요한 정보만 추출해서 저장
+    // 강좌 추가
     items.value.push(course);
   };
 

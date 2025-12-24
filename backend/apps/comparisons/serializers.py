@@ -54,7 +54,7 @@ from apps.courses.models import Course
 from apps.comparisons.models import CourseAIReview
 
 MIN_COURSE_COMPARISON_COUNT = 1  # 최소 비교 강좌 수
-MAX_COURSE_COMPARISON_COUNT = 3  # 최대 비교 강좌 수
+MAX_COURSE_COMPARISON_COUNT = 4  # 최대 비교 강좌 수
 
 MIN_WEEKLY_HOURS = 1    # 최소 주당 학습 시간
 MAX_WEEKLY_HOURS = 168  # 최대 주당 학습 시간 (24*7)
