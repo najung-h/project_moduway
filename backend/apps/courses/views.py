@@ -395,8 +395,8 @@ class CourseSemanticSearchView(APIView):
                 knn={
                     "field": "embedding",
                     "query_vector": query_vector,
-                    "k": 100, # 넉넉히 조회
-                    "num_candidates": 1000
+                    "k": 50,
+                    "num_candidates": 500
                 },
                 source=["id"]
             )
