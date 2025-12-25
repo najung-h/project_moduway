@@ -6,30 +6,35 @@ from pathlib import Path
 from dotenv import load_dotenv
 import logging
 
-env_file = Path("/home/ubuntu/.env.prod")
-if not env_file.exists():
-    raise RuntimeError(".env.prod file not found")
-
-
-load_dotenv(env_file, override=True)
+# Docker 환경에서는 환경변수가 docker-compose의 env_file로 이미 로드됨
+# load_dotenv를 사용하면 --env-file 옵션을 덮어쓰므로 제거
 
 DEBUG = False
 
 ALLOWED_HOSTS = os.environ.get("DJANGO_ALLOWED_HOSTS", "").split(",")
 
+# Elasticsearch (Docker 환경)
+ELASTICSEARCH_URL = os.environ.get("ES_URL", "http://elasticsearch:9200")
+
+# 이메일 설정 (임시: console backend 사용)
+# TODO: 실제 프로덕션에서는 SMTP 설정 필요
+EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+ACCOUNT_EMAIL_VERIFICATION = "none"
+ACCOUNT_LOGIN_ON_EMAIL_CONFIRMATION = True
+
 if not SECRET_KEY:
     raise RuntimeError("SECRET_KEY is not set")
 
-# 운영용은 postgresql 사용
+# 운영용 PostgreSQL (Docker 환경)
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql",
-        "NAME": os.environ.get("PROD_DB_NAME"),
-        "USER": os.environ.get("PROD_DB_USER"),
-        "PASSWORD": os.environ.get("PROD_DB_PASSWORD"),
-        "HOST": os.environ.get("PROD_DB_HOST", "localhost"),
-        "PORT": int(os.environ.get("PROD_DB_PORT", 5432)),
-        "CONN_MAX_AGE": int(os.environ.get("PROD_DB_CONN_MAX_AGE", 60)),
+        "NAME": os.environ.get("POSTGRES_DB", "moduway"),
+        "USER": os.environ.get("POSTGRES_USER", "moduway"),
+        "PASSWORD": os.environ.get("POSTGRES_PASSWORD", "moduway"),
+        "HOST": os.environ.get("POSTGRES_HOST", "db"),
+        "PORT": int(os.environ.get("POSTGRES_PORT", 5432)),
+        "CONN_MAX_AGE": 60,  # 연결 재사용
     }
 }
 

@@ -2,7 +2,17 @@ import axios from 'axios';
 
 // Axios 인스턴스 생성
 const api = axios.create({
-  baseURL: 'http://localhost/api/v1', // 백엔드 API 주소
+  // ===== 배포 전 (로컬 개발용) - localhost 하드코딩 =====
+  // baseURL: 'http://localhost/api/v1',
+  // 문제점: 프로덕션 배포 시 localhost를 가리켜서 API 호출 실패
+
+  // ===== 배포용 - 환경 변수 사용 =====
+  // Vite 환경 변수 사용 (import.meta.env)
+  // - 로컬: .env 파일 → VITE_API_URL=http://localhost/api/v1
+  // - 프로덕션: .env.production 파일 → VITE_API_URL=/api/v1
+  // - 폴백: 환경 변수 없으면 '/api/v1' 사용 (Nginx 프록시가 처리)
+  baseURL: import.meta.env.VITE_API_URL || '/api/v1',
+
   headers: {
     'Content-Type': 'application/json',
   },

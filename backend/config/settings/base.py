@@ -105,16 +105,43 @@ MIDDLEWARE = [
     'allauth.account.middleware.AccountMiddleware',
 ]
 
+# ===== 배포 전 (로컬 개발용) =====
+# CORS_ALLOWED_ORIGINS = [
+#     'http://127.0.0.1:5173',
+#     'http://localhost:5173',
+# ]
+# CSRF_TRUSTED_ORIGINS = [
+#     'http://localhost',
+#     'http://127.0.0.1',
+#     'http://127.0.0.1:5173',
+#     'http://localhost:5173',
+# ]
+# 문제점: 프로덕션 도메인이 없어서 CORS/CSRF 에러 발생 가능
+
+# ===== 배포용 - 프로덕션 도메인 추가 =====
 CORS_ALLOWED_ORIGINS = [
+    # 로컬 개발 (Vite dev server)
     'http://127.0.0.1:5173',
     'http://localhost:5173',
+
+    # 프로덕션 (Cloudflare SSL 사용)
+    'https://life-learn.site',
+    'https://www.life-learn.site',
+
+    # 참고: Nginx 프록시를 사용하므로 CORS는 실제로 발생하지 않을 수 있음
+    # 하지만 안전하게 추가해둠
 ]
 
 CSRF_TRUSTED_ORIGINS = [
+    # 로컬 개발
     'http://localhost',
     'http://127.0.0.1',
     'http://127.0.0.1:5173',
     'http://localhost:5173',
+
+    # 프로덕션
+    'https://life-learn.site',
+    'https://www.life-learn.site',
 ]
 
 ROOT_URLCONF = 'config.urls'
