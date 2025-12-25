@@ -70,12 +70,17 @@ const handleSearch = (e) => {
 const fetchCourses = async () => {
     try {
         const params = {
-            page_size: 8,
-            ordering: '-created_at'
+            page_size: 200, // 충분한 양을 가져와서 필터링 후 8개 선택
+            ordering: '-study_start' // 최근 개강 강좌 우선
         };
 
         const response = await getCourseList(params);
-        courses.value = response.data.results.map(processCourseData);
+        const processedCourses = response.data.results.map(processCourseData);
+
+        // 접수 가능한 강좌만 필터링하여 8개 선택 (접수중, 개강임박, 개강예정, 상시)
+        courses.value = processedCourses
+            .filter(course => ['접수중', '개강임박', '개강예정', '상시'].includes(course.status))
+            .slice(0, 8);
     } catch (error) {
         console.error('강좌 목록 불러오기 실패:', error);
     }
@@ -86,13 +91,38 @@ const processCourseData = (course) => {
     let status = '모집마감';
     let badgeColor = '#999';
 
-    if (course.enrollment_end === null) {
+    // 1. 수강 종료일 체크 (최우선)
+    if (course.study_end && course.study_end < today) {
+        status = '종료';
+        badgeColor = '#666';
+    }
+    // 2. 상시 모집 강좌
+    else if (course.enrollment_end === null) {
         status = '상시';
         badgeColor = '#333';
-    } else if (course.enrollment_start <= today && today <= course.enrollment_end) {
-        status = '접수중';
-        badgeColor = 'var(--primary-dark)';
-    } else if (course.study_start > today) {
+    }
+    // 3. 모집 마감 (enrollment_end는 지났지만 study_end는 안 지남)
+    else if (course.enrollment_end < today) {
+        status = '모집마감';
+        badgeColor = '#999';
+    }
+    // 4. 접수중 / 개강임박
+    else if (course.enrollment_start <= today && today <= course.enrollment_end) {
+        // 접수 마감까지 7일 이하면 개강임박
+        const enrollEnd = new Date(course.enrollment_end);
+        const todayDate = new Date(today);
+        const daysUntilEnd = Math.ceil((enrollEnd - todayDate) / (1000 * 60 * 60 * 24));
+
+        if (daysUntilEnd <= 7) {
+            status = '개강임박';
+            badgeColor = 'var(--secondary)';
+        } else {
+            status = '접수중';
+            badgeColor = 'var(--primary-dark)';
+        }
+    }
+    // 5. 개강예정 (접수 전)
+    else if (course.enrollment_start > today) {
         status = '개강예정';
         badgeColor = 'var(--secondary)';
     }

@@ -1,6 +1,7 @@
 :root {
     --primary: #f64959;       /* 메인 포인트 컬러 */
     --primary-dark: #cc293d;  /* 호버 및 강조 컬러 */
+    --secondary: #f21d31;     /* 보조/강조 컬러 */
     --text-main: #111111;
     --text-sub: #666666;
     --bg-white: #ffffff;
