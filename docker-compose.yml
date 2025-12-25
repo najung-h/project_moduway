@@ -5,7 +5,8 @@ services:
     container_name: moduway-db
     restart: always
     env_file:
-      - .env
+      # 운영 환경 변수 파일
+      - .env.prod
     ports:
       - "5432:5432"
     volumes:
@@ -74,7 +75,8 @@ services:
       elasticsearch:
         condition: service_started
     env_file:
-      - .env
+      # 운영 환경 변수 파일
+      - .env.prod
     networks:
       - moduway-net
     # 마이그레이션 시 vector 확장 설치여부 확인 후 gunicorn 서버 실행

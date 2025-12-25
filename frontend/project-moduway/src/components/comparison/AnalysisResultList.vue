@@ -46,7 +46,10 @@
     <div v-else class="guide-container">
       <div class="guide-header">
         <h2>AI 강좌 분석 사용 가이드</h2>
-        <p>복잡한 강좌 선택, AI가 나에게 딱 맞는 최적의 강좌를 추천해 드립니다.</p>
+        <p>
+          단순한 스펙 비교를 넘어, <strong>LLM(거대언어모델)</strong>이 사용자의 학습 목표를 이해하고<br>
+          가중치 기반 알고리즘으로 <strong>나에게 가장 적합한 강좌</strong>를 논리적으로 분석해 드립니다.
+        </p>
       </div>
 
       <div class="steps-grid">
@@ -54,23 +57,29 @@
           <div class="step-num">1</div>
           <div class="step-content">
             <h3>관심강좌 등록</h3>
-            <p>비교하고 싶은 강의를 먼저 <strong>관심강좌</strong>(위시리스트)로 등록해 주세요.</p>
+            <p>분석하고 싶은 강의를 먼저 <strong>관심강좌(찜)</strong>에 등록해 주세요. 수강 중인 강좌도 포함할 수 있습니다.</p>
           </div>
         </div>
 
         <div class="step-item">
           <div class="step-num">2</div>
           <div class="step-content">
-            <h3>학습 목표 설정</h3>
-            <p>좌측 패널에 <strong>주당 학습 가능 시간</strong>과 구체적인 <strong>학습 목표</strong>를 입력하세요.</p>
+            <h3>학습 목표 입력</h3>
+            <p>
+              "비전공자인데 데이터 분석가로 취업하고 싶어"처럼 구체적인 목표를 적어주세요.<br>
+              <strong>AI가 문맥을 파악</strong>하여 이 강좌가 왜 적합한지 설명해 줍니다.
+            </p>
           </div>
         </div>
 
         <div class="step-item">
           <div class="step-num">3</div>
           <div class="step-content">
-            <h3>중요도 조절</h3>
-            <p>나에게 중요한 기준(실무, 이론 등)의 가중치를 <strong>0~5점</strong>으로 조절해주세요.</p>
+            <h3>선호도 가중치 설정</h3>
+            <p>
+              이론/실무/난이도/기간 중 나에게 중요한 요소에 높은 점수를 주세요.<br>
+              <strong>유클리드 거리 알고리즘</strong>을 통해 개인화된 <strong>적합도 점수(%)</strong>가 산출됩니다.
+            </p>
           </div>
         </div>
 
@@ -78,15 +87,17 @@
           <div class="step-num">4</div>
           <div class="step-content">
             <h3>비교 대상 선택</h3>
-            <p>관심강좌에 등록돼 있는 강좌들 중에서 비교할 <strong>1~3개를 체크</strong>하세요.</p>
+            <p>좌측 목록에서 분석할 강좌를 <strong>최대 3개까지 선택</strong>하세요. 너무 많은 강좌는 비교가 어려울 수 있습니다.</p>
           </div>
         </div>
 
         <div class="step-item highlight">
           <div class="step-num">5</div>
           <div class="step-content">
-            <h3>분석 시작</h3>
-            <p>모든 설정이 완료되었다면 좌측 하단의 <strong>[AI 강좌 비교 분석 시작]</strong> 버튼을 클릭하세요!</p>
+            <h3>AI 분석 시작</h3>
+            <p>
+              <strong>[분석 시작]</strong> 버튼을 누르면 AI 코멘트, 리뷰 요약(장단점), 적합도 점수를 한눈에 볼 수 있습니다.
+            </p>
           </div>
         </div>
       </div>
@@ -282,45 +293,46 @@ const topRecommendation = computed(() => {
   background: white;
   border: 1px solid var(--border);
   border-radius: 24px;
-  padding: 40px;
+  padding: 60px 40px; /* 상하 패딩 증가 (40px -> 60px) */
   text-align: center;
   box-shadow: 0 4px 20px rgba(0,0,0,0.03);
 }
 
 .guide-header h2 {
-  font-size: 24px;
+  font-size: 26px; /* 폰트 크기 증가 */
   font-weight: 800;
   color: var(--text-main);
-  margin-bottom: 10px;
+  margin-bottom: 16px;
 }
 
 .guide-header p {
   color: var(--text-sub);
   font-size: 16px;
-  margin-bottom: 40px;
+  line-height: 1.6; /* 줄간격 증가 */
+  margin-bottom: 50px; /* 하단 여백 증가 */
 }
 
 .steps-grid {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 15px;
+  gap: 20px; /* 그리드 간격 증가 */
   text-align: left;
 }
 
 .step-item {
   display: flex;
   align-items: flex-start;
-  gap: 15px;
-  padding: 20px;
+  gap: 20px; /* 아이템 내부 간격 증가 */
+  padding: 24px; /* 내부 패딩 증가 */
   background: #f9f9f9;
-  border-radius: 12px;
+  border-radius: 16px; /* 라운드 증가 */
   transition: 0.2s;
 }
 
 .step-item:hover {
   background: white;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.06); /* 그림자 강화 */
+  transform: translateY(-4px); /* 호버 효과 강화 */
 }
 
 .step-item.highlight {
@@ -329,13 +341,13 @@ const topRecommendation = computed(() => {
 }
 
 .step-num {
-  width: 28px; height: 28px;
+  width: 32px; height: 32px; /* 번호표 크기 증가 */
   background: var(--text-main);
   color: white;
   border-radius: 50%;
   display: flex; align-items: center; justify-content: center;
   font-weight: 800;
-  font-size: 14px;
+  font-size: 15px;
   flex-shrink: 0;
   margin-top: 2px;
 }
@@ -345,20 +357,22 @@ const topRecommendation = computed(() => {
 }
 
 .step-content h3 {
-  font-size: 15px;
+  font-size: 16px; /* 제목 크기 증가 */
   font-weight: 700;
   color: var(--text-main);
-  margin-bottom: 6px;
+  margin-bottom: 8px;
 }
 
 .step-content p {
-  font-size: 13px;
+  font-size: 14px;
   color: var(--text-sub);
-  line-height: 1.5;
+  line-height: 1.6; /* 가독성을 위한 줄간격 */
   margin: 0;
+  word-break: keep-all; /* 한글 단어 끊김 방지 */
 }
 
 .step-content strong {
   color: var(--primary-dark);
+  font-weight: 600;
 }
 </style>
