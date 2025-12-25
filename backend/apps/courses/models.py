@@ -46,10 +46,24 @@ class Course(models.Model):
     class Meta:
         db_table = 'courses'
         ordering = ['-created_at']
-        #TODO 3. 벡터 검색 최적화를 위한 인덱스 추가(데이터 적재 완료 후 테스트 및 활성화 검토)
-        # indexes = [
-        #     models.Index(fields=['embedding'], name='course_embedding_idx'),
-        # ]
+        indexes = [
+            # 중복 제거용 복합 인덱스 (가장 중요!)
+            # - views.py의 Subquery 중복 제거 로직에서 사용
+            # - (name, professor) 조합으로 그룹핑 후 study_start 내림차순 정렬
+            models.Index(fields=['name', 'professor', '-study_start'], name='idx_course_dedup'),
+
+            # 필터링용 인덱스
+            models.Index(fields=['classfy_name'], name='idx_classfy'),
+            models.Index(fields=['middle_classfy_name'], name='idx_middle_classfy'),
+
+            # 검색용 인덱스
+            models.Index(fields=['name'], name='idx_course_name'),
+            models.Index(fields=['org_name'], name='idx_org_name'),
+            models.Index(fields=['professor'], name='idx_professor'),
+
+            # 벡터 검색 최적화를 위한 인덱스 (임베딩)
+            # models.Index(fields=['embedding'], name='idx_embedding'),
+        ]
 
 
 # merge 충돌을 피하기 위해 import 임시 위치 변경 #TEMP

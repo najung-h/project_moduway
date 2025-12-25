@@ -78,6 +78,7 @@ class CourseDetailSerializer(serializers.ModelSerializer):
     is_wished = serializers.SerializerMethodField()
     rating = serializers.SerializerMethodField()
     review_count = serializers.SerializerMethodField()
+    ai_summary = serializers.SerializerMethodField()
 
     class Meta:
         model = Course
@@ -86,7 +87,8 @@ class CourseDetailSerializer(serializers.ModelSerializer):
             'classfy_name', 'middle_classfy_name', 'summary', 'raw_summary',
             'course_image', 'url', 'week', 'course_playtime',
             'certificate_yn', 'is_wished', 'rating', 'review_count',
-            'enrollment_start', 'enrollment_end', 'study_start', 'study_end'
+            'enrollment_start', 'enrollment_end', 'study_start', 'study_end',
+            'ai_summary'
         ]
 
     def get_is_wished(self, obj):
@@ -115,6 +117,15 @@ class CourseDetailSerializer(serializers.ModelSerializer):
         - 해당 강좌에 달린 수강평의 총 개수 반환
         """
         return CourseReview.objects.filter(course=obj).count()
+
+    def get_ai_summary(self, obj):
+        """
+        [로직]
+        - CourseAIReview 모델에서 생성된 강좌 요약 반환
+        """
+        if hasattr(obj, 'ai_review'):
+            return obj.ai_review.course_summary
+        return None
 
 # 1.3 CourseReviewSerializer | 강의 리뷰 시리얼라이저
 class CourseReviewSerializer(serializers.ModelSerializer):
