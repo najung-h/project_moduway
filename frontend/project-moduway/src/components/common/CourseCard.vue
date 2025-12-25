@@ -42,13 +42,12 @@ const props = defineProps({
   status: { type: String, default: '접수중' },
   badgeColor: { type: String, default: 'var(--primary-dark)' },
 
-  // 라우팅 경로 (기본값: 강좌 상세 페이지)
-  linkTo: { type: String, default: '' }
+  // 라우팅 경로 (선택적, 없으면 강좌 상세 페이지)
+  linkTo: { type: String, default: null }
 });
 
 // 라우팅 경로 계산
 const computedLink = computed(() => {
-  // linkTo가 제공되면 그것을 사용, 아니면 기본 강좌 상세 페이지로
   return props.linkTo || `/courses/${props.id}`;
 });
 
