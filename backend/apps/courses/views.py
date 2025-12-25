@@ -1,7 +1,8 @@
 from django.shortcuts import render, get_object_or_404
 from django.conf import settings
-from django.db.models import Q, Count, Avg, OuterRef, Subquery
-from django.db.models.functions import Coalesce
+from django.core.cache import cache
+from django.db.models import Q, Count, Avg, Window, F
+from django.db.models.functions import Coalesce, RowNumber
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.filters import OrderingFilter
@@ -91,11 +92,12 @@ class CourseListView(generics.ListAPIView):
         - QuerySet 구성: annotate → filter → search → order_by
 
         [처리 흐름]
-        1. annotate (평점, 리뷰수)
-        2. 중복 제거 (Subquery 활용: 이름+교수자가 같으면 study_start 최신순 필터링)
+        1. annotate (평점, 리뷰수, Window Function으로 중복 제거용 row_num)
+        2. 중복 제거 (row_num=1 필터링: 이름+교수자가 같으면 study_start 최신순만 선택)
         3. 검색 (search)
         4. 필터 (category, org 등)
         5. 정렬 (ordering)
+        6. Distinct (JOIN으로 인한 추가 중복 방지)
         """
         # DRF ListAPIView는 요청마다 get_queryset()을 호출해서 최종 queryset을 만든다.
         # 따라서 이 함수는 "목록 쿼리 1방"으로 끝나도록 DB 레벨 계산/필터/정렬을 조합한다.
@@ -103,6 +105,7 @@ class CourseListView(generics.ListAPIView):
         # 1. Base QuerySet with annotate
 
         # - 목록 화면에서 필요한 집계 값(평균 평점, 리뷰 수)을 미리 계산하여 N+1을 방지한다.
+        # - Window Function으로 중복 제거 처리
         queryset = Course.objects.annotate(
             # 평균 평점 계산 (NULL이면 0.0)
             # - 리뷰가 없는 강좌는 Avg 결과가 NULL이 되므로 Coalesce로 0.0으로 대체
@@ -112,26 +115,20 @@ class CourseListView(generics.ListAPIView):
                 0.0 # 대체값
             ),
             # 리뷰 개수
-            review_count=Count('reviews', distinct=True) # distinct=True: 중복 리뷰 방지, 1:N 관계에서 필수!
+            review_count=Count('reviews', distinct=True), # distinct=True: 중복 리뷰 방지
+
+            # 2. 중복 제거를 위한 Window Function
+            # [설계 의도]
+            # - 강좌명(name)과 교수자(professor)가 같다면,
+            #   수강 시작일(study_start)이 가장 최신인(Null 포함 정렬 주의) 강좌 1개만 남김
+            row_num=Window(
+                expression=RowNumber(),
+                partition_by=[F('name'), F('professor')],  # 그룹핑 기준
+                order_by=F('study_start').desc(nulls_last=True)  # 정렬 기준 (NULL은 마지막)
+            )
+        ).filter(
+            row_num=1  # 각 그룹에서 첫 번째(최신) 강좌만 선택
         )
-
-        # 2. 중복 제거
-        # [설계 의도]
-        # - 강좌명(name)과 교수자(professor)가 같다면, 
-        #   수강 시작일(study_start)이 가장 최신인(Null 포함 정렬 주의) 강좌 1개만 남김
-        
-        # Subquery 정의:
-        # - 메인 쿼리의 현재 행(OuterRef)과 이름/교수가 같은 강좌들을 찾음
-        # - study_start 내림차순 정렬 (최신 날짜가 먼저 옴)
-        # - 그 중 가장 첫 번째 ID(pk)를 선택
-        latest_course_subquery = Course.objects.filter(
-            name=OuterRef('name'),
-            professor=OuterRef('professor')
-        ).order_by('-study_start').values('id')[:1]
-
-        # 메인 QuerySet 필터링:
-        # - "나의 ID"가 "내 그룹(이름+교수)의 최신 ID"와 일치하는 행만 남김
-        queryset = queryset.filter(id=Subquery(latest_course_subquery))
         
         # 3. Search (강좌명만 검색)
         # ?search=" 파이썬  웹 " -> ['파이썬', '웹']
@@ -195,10 +192,41 @@ class CourseListView(generics.ListAPIView):
         if ordering not in allowed_ordering:  # 허용되지 않은 정렬 키가 들어오면
             ordering = '-average_rating'       # 안전한 기본 정렬로 강제 fallback
 
-        # 5. Distinct (중복 제거)
-        # - annotate/filter 과정에서 JOIN이 생기면 동일 Course가 중복 row로 나올 수 있음
+        # 6. Distinct (추가 중복 제거)
+        # - Window Function으로 이미 주요 중복은 제거했지만,
+        #   annotate/filter 과정에서 JOIN이 생기면 동일 Course가 중복 row로 나올 수 있음
         # - distinct()는 최종 결과에서 중복 Course 제거(단, DB에 따라 성능 영향이 있으니 최소화가 이상적)
         return queryset.order_by(ordering).distinct()  # 정렬 적용 후 중복 제거한 최종 QuerySet 반환
+
+    def list(self, request, *args, **kwargs):
+        """
+        [설계 의도]
+        - 캐싱을 적용하여 동일한 쿼리 파라미터 요청 시 DB 조회 없이 캐시에서 응답
+        - 캐시 키: 쿼리 파라미터를 기반으로 생성
+        - 캐시 TTL: 5분 (300초)
+
+        [처리 흐름]
+        1. 쿼리 파라미터로 캐시 키 생성
+        2. 캐시에서 데이터 확인
+        3. 캐시 히트 시 캐시 데이터 반환
+        4. 캐시 미스 시 DB 조회 후 캐시 저장 및 반환
+        """
+        # 1. 캐시 키 생성 (쿼리 파라미터 기반)
+        query_params = request.GET.urlencode()
+        cache_key = f"course_list:{query_params}"
+
+        # 2. 캐시에서 데이터 확인
+        cached_response = cache.get(cache_key)
+        if cached_response is not None:
+            return Response(cached_response)
+
+        # 3. 캐시 미스 - DB 조회
+        response = super().list(request, *args, **kwargs)
+
+        # 4. 캐시에 저장 (5분 TTL)
+        cache.set(cache_key, response.data, 300)
+
+        return response
 
 
 
@@ -301,6 +329,136 @@ class CourseRecommendationView(APIView):
             print(traceback.format_exc())
             # 에러 발생 시 500 대신 빈 리스트 반환하여 프론트엔드 에러 방지
             return Response([], status=status.HTTP_200_OK)
+
+
+class CourseKeywordSearchView(APIView):
+    """
+    Elasticsearch를 활용한 키워드 검색 (Fuzzy Search 지원)
+
+    [설계 의도]
+    - ES의 multi_match + fuzziness로 오타 보정 기능 제공
+    - 제목(name) 필드만 검색
+    - 필터링 및 페이지네이션 지원
+    - 중복 제거 (같은 이름+교수 조합)
+    """
+    permission_classes = [AllowAny]
+
+    def _build_es_filters(self):
+        """ES query용 필터 조건 생성"""
+        filters = []
+
+        # 대분류 필터 (정확히 일치)
+        classfy_name = self.request.query_params.get('classfy_name')
+        if classfy_name:
+            filters.append({"term": {"classfy_name.keyword": classfy_name}})
+
+        # 중분류 필터 (다중 값 지원)
+        middle_classfy_names = self.request.query_params.getlist('middle_classfy_name')
+        if middle_classfy_names:
+            filters.append({"terms": {"middle_classfy_name.keyword": middle_classfy_names}})
+
+        # 운영기관 필터 (부분 일치)
+        org_name = self.request.query_params.get('org_name')
+        if org_name:
+            filters.append({"match": {"org_name": org_name}})
+
+        # 교수명 필터 (부분 일치)
+        professor = self.request.query_params.get('professor')
+        if professor:
+            filters.append({"match": {"professor": professor}})
+
+        return filters
+
+    def get(self, request):
+        search_query = request.query_params.get('search', '').strip()
+        if not search_query:
+            return Response({"results": [], "count": 0}, status=status.HTTP_200_OK)
+
+        # 페이지네이션 파라미터
+        page = int(request.query_params.get('page', 1))
+        page_size = int(request.query_params.get('page_size', 3))
+        from_index = (page - 1) * page_size
+
+        try:
+            # ES 필터 조건 생성
+            es_filters = self._build_es_filters()
+
+            # ES 검색 쿼리 구성
+            es_query = {
+                "bool": {
+                    "must": [
+                        {
+                            "multi_match": {
+                                "query": search_query,
+                                "fields": ["name^2"],  # name 필드만, 가중치 2배
+                                "fuzziness": 1,        # 1글자 차이까지 허용
+                                "operator": "and",     # 모든 키워드 포함
+                                "prefix_length": 1     # 첫 글자는 정확히 일치해야 함
+                            }
+                        }
+                    ]
+                }
+            }
+
+            # 필터 추가
+            if es_filters:
+                es_query["bool"]["filter"] = es_filters
+
+            # ES 검색 실행 (넉넉하게 가져와서 중복 제거 후 페이지네이션)
+            res = ES_CLIENT.search(
+                index="kmooc_courses",
+                query=es_query,
+                size=200,  # 중복 제거를 위해 넉넉히 가져옴
+                source=["id"]
+            )
+
+            hits = res.get("hits", {}).get("hits", [])
+            candidate_ids = [int(h["_source"]["id"]) for h in hits]
+
+            # DB 조회
+            courses_queryset = Course.objects.filter(id__in=candidate_ids).annotate(
+                average_rating=Coalesce(Avg('reviews__rating'), 0.0),
+                review_count=Count('reviews', distinct=True)
+            )
+            course_data_map = {c.id: c for c in courses_queryset}
+
+            # 중복 제거 (ES 순서 유지)
+            final_courses = []
+            seen_identity = set()
+
+            for c_id in candidate_ids:
+                course = course_data_map.get(c_id)
+                if not course:
+                    continue
+
+                curr_name = course.name.strip()
+                curr_professor = course.professor.strip()
+                identity = (curr_name, curr_professor)
+
+                if identity not in seen_identity:
+                    final_courses.append(course)
+                    seen_identity.add(identity)
+
+            # 전체 개수
+            total_count = len(final_courses)
+
+            # 페이지네이션 적용
+            start = from_index
+            end = from_index + page_size
+            paginated_courses = final_courses[start:end]
+
+            serializer = CourseListSerializer(paginated_courses, many=True)
+
+            return Response({
+                "results": serializer.data,
+                "count": total_count
+            })
+
+        except Exception as e:
+            import traceback
+            print(f"❌ ES 키워드 검색 에러: {e}")
+            print(traceback.format_exc())
+            return Response({"results": [], "count": 0}, status=status.HTTP_200_OK)
 
 
 class CourseSemanticSearchView(APIView):
