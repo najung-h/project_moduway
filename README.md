@@ -1,12 +1,24 @@
 # 프로젝트 개요
-K-Mooc 고도화
+기존 K-MOOC의 검색 및 추천 한계를 극복하고, 개인화된 학습 경험을 제공하는 플랫폼
 <br>
 <br>
 
 # As Is  - To Be
-- 검색 기능
-- 추천 기능
-- 개인화
+
+### AS Is
+| As Is | To Be |
+| :---: | :---: |
+| 검색 | 검색 기능 개선 |
+| [이미지](./docs/images/.png) | [이미지](./docs/images/.png) |
+| 추천 | 맞춤 강의 추천 |
+| [이미지](./docs/images/.png) | [이미지](./docs/images/.png) |
+| - | AI 강좌 분석 |
+| [이미지](./docs/images/.png) | [이미지](./docs/images/.png) |
+| UI/UX | UI/UX 개선 |
+| [이미지](./docs/images/asis4.png) | [이미지](./docs/images/.png) |
+| 기능 | 기능 개선 |
+
+
 <br>
 <br>
 
@@ -53,3 +65,11 @@ K-Mooc 고도화
 
 <br>
 <br>
+
+# 기술 스택 요약
+## 아키텍쳐
+
+# 설계 원칙
+
+| (이미지) | (이미지) |
+# 향후 기술적 개선 방향
