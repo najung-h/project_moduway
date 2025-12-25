@@ -119,35 +119,13 @@
 
         <!-- Case 2: 검색 후 (두 개의 섹션) -->
         <div v-else class="search-results">
-          
+
           <button class="btn-back-all" @click="clearSearch">← 전체 목록으로 돌아가기</button>
 
-          <!-- 섹션 1: AI 의미 기반 검색 -->
-          <section class="result-section ai-section">
-            <div class="section-head">
-              <h3>🤖 AI 의미 기반 검색 결과</h3>
-              <span class="count-badge">{{ semanticAllData.length }}건</span>
-            </div>
-            
-            <div v-if="semanticLoading" class="loading-state small"><p>AI 분석 중...</p></div>
-            <div v-else-if="semanticDisplayData.length > 0">
-              <div class="course-grid">
-                <CourseCard v-for="course in semanticDisplayData" :key="course.id" v-bind="course" />
-              </div>
-              <!-- Client-side Pagination -->
-              <div class="pagination" v-if="semanticAllData.length > 3">
-                <button class="page-btn" :disabled="semanticPage === 1" @click="semanticPage--">&lt;</button>
-                <span class="page-info">{{ semanticPage }} / {{ Math.ceil(semanticAllData.length / 3) }}</span>
-                <button class="page-btn" :disabled="semanticPage >= Math.ceil(semanticAllData.length / 3)" @click="semanticPage++">&gt;</button>
-              </div>
-            </div>
-            <div v-else class="empty-state small"><p>AI 검색 결과가 없습니다.</p></div>
-          </section>
-
-          <!-- 섹션 2: 키워드 검색 -->
+          <!-- 섹션 1: 키워드 검색 -->
           <section class="result-section keyword-section">
             <div class="section-head">
-              <h3>🔍 키워드 검색 결과</h3>
+              <h3>🔍 검색 결과</h3>
               <span class="count-badge">{{ totalKeywordCount }}건</span>
             </div>
 
@@ -164,6 +142,28 @@
               </div>
             </div>
             <div v-else class="empty-state small"><p>키워드 검색 결과가 없습니다.</p></div>
+          </section>
+
+          <!-- 섹션 2: AI 의미 기반 검색 -->
+          <section class="result-section ai-section">
+            <div class="section-head">
+              <h3>✨ 이런 강좌는 어떠세요?</h3>
+              <span class="count-badge">{{ semanticAllData.length }}건</span>
+            </div>
+
+            <div v-if="semanticLoading" class="loading-state small"><p>AI 분석 중...</p></div>
+            <div v-else-if="semanticDisplayData.length > 0">
+              <div class="course-grid">
+                <CourseCard v-for="course in semanticDisplayData" :key="course.id" v-bind="course" />
+              </div>
+              <!-- Client-side Pagination -->
+              <div class="pagination" v-if="semanticAllData.length > 3">
+                <button class="page-btn" :disabled="semanticPage === 1" @click="semanticPage--">&lt;</button>
+                <span class="page-info">{{ semanticPage }} / {{ Math.ceil(semanticAllData.length / 3) }}</span>
+                <button class="page-btn" :disabled="semanticPage >= Math.ceil(semanticAllData.length / 3)" @click="semanticPage++">&gt;</button>
+              </div>
+            </div>
+            <div v-else class="empty-state small"><p>AI 검색 결과가 없습니다.</p></div>
           </section>
 
         </div>
