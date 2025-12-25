@@ -14,15 +14,15 @@
       <div v-if="topRecommendation" class="comments-section">
         <div class="ai-comment-box highlight">
           <div class="comment-content">
-            <!-- 1. 강의 제목 (강조) -->
-            <h2 class="course-name-hero">{{ topRecommendation.course_name }}</h2>
-            
-            <!-- 2. 라벨 및 아이콘 -->
+            <!-- 1. 라벨 및 아이콘 (좌상단) -->
             <div class="comment-header">
               <span class="crown-icon">👑</span>
-              <span class="comment-label">AI 최우수 추천 강좌</span>
+              <span class="comment-label">AI 최우수 추천</span>
             </div>
-            
+
+            <!-- 2. 강의 제목 (강조) -->
+            <h2 class="course-name-hero">{{ topRecommendation.course_name }}</h2>
+
             <!-- 3. 추천 코멘트 -->
             <p class="comment-text">"{{ topRecommendation.recommendation_reason }}"</p>
           </div>
@@ -176,76 +176,84 @@ const topRecommendation = computed(() => {
 
 /* AI Comment Box */
 .ai-comment-box {
-  background: linear-gradient(135deg, #fff0f2 0%, #fff 100%);
-  border: 1px solid #ffdce0;
-  border-radius: 16px;
-  padding: 28px;
+  background: linear-gradient(135deg, #ffffff 0%, #fff8f9 100%);
+  border: 2px solid #ffe4e6;
+  border-radius: 24px;
+  padding: 36px 40px;
   position: relative;
   overflow: hidden;
+  box-shadow: 0 4px 24px rgba(246, 73, 89, 0.08);
+  transition: all 0.3s ease;
 }
 
-.ai-comment-box.highlight {
-  border: 2px solid #ffdce0;
-  box-shadow: 0 4px 20px rgba(246, 73, 89, 0.1);
+.ai-comment-box::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, var(--primary) 0%, #ff8fa3 100%);
+}
+
+.ai-comment-box.highlight:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 32px rgba(246, 73, 89, 0.15);
 }
 
 .comment-content {
   position: relative;
   z-index: 1;
-  text-align: center; /* 중앙 정렬로 변경 */
-}
-
-.course-name-hero {
-  font-size: 32px;
-  font-weight: 900;
-  color: #111;
-  margin: 0 0 16px 0;
-  line-height: 1.3;
-  word-break: keep-all;
 }
 
 .comment-header {
-  display: inline-flex; /* 인라인 플렉스로 변경하여 중앙 정렬 */
+  display: inline-flex;
   align-items: center;
-  gap: 8px;
-  margin-bottom: 24px;
-  background: white;
-  padding: 6px 16px;
-  border-radius: 50px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-  border: 1px solid #ffe4e6;
+  gap: 6px;
+  margin-bottom: 16px;
+  background: linear-gradient(135deg, #fff 0%, #ffe4e6 100%);
+  padding: 6px 14px;
+  border-radius: 20px;
+  box-shadow: 0 2px 8px rgba(246, 73, 89, 0.1);
+  border: 1px solid #ffcdd4;
 }
 
 .crown-icon {
-  font-size: 20px;
+  font-size: 16px;
   animation: bounce 2s infinite;
 }
 
 @keyframes bounce {
   0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-3px); }
+  50% { transform: translateY(-2px); }
 }
 
 .comment-label {
-  font-size: 13px;
+  font-size: 11px;
   font-weight: 800;
   color: var(--primary);
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
 
-/* 기존 course-badge 제거됨 */
+.course-name-hero {
+  font-size: 26px;
+  font-weight: 800;
+  color: #111;
+  margin: 0 0 20px 0;
+  line-height: 1.4;
+  word-break: keep-all;
+  letter-spacing: -0.5px;
+}
 
 .comment-text {
-  font-size: 18px;
-  font-weight: 600;
+  font-size: 16px;
+  font-weight: 500;
   color: #444;
-  line-height: 1.7;
+  line-height: 1.8;
   margin-bottom: 0;
   word-break: keep-all;
-  max-width: 800px;
-  margin-left: auto;
-  margin-right: auto;
+  padding: 0 8px;
 }
 
 .comment-note {

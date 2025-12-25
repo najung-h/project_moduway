@@ -1,316 +1,428 @@
 <template>
-  <div class="course-detail-page" v-if="course">
-    <section class="course-hero">
-      <div class="container hero-content">
-        <div class="hero-text">
-          <div class="university-tag">{{ course.org_name }}</div>
-          <h1 class="course-title">{{ course.name }}</h1>
-          <p class="instructor-info">
-            <strong>교수진:</strong> {{ course.professor }} | 
-            <strong>분야:</strong> {{ course.classfy_name }} > {{ course.middle_classfy_name }}
-          </p>
-          <div class="course-stats-inline">
-            <span class="rating-badge">★ {{ course.rating || '0.0' }}</span>
-            <span class="vod-time">📺 VOD {{ formattedPlaytime }}</span>
-          </div>
-          <div class="action-buttons">
-            <button class="btn-enroll" @click="handleEnroll">수강 신청하기</button>
-            <button 
-              class="btn-wishlist" 
-              :class="{ active: course.is_wished }" 
-              @click="handleWishlistToggle"
-            >
-              {{ course.is_wished ? '♥' : '♡' }} 관심 강좌
-            </button>
-          </div>
-        </div>
-        <div class="hero-image">
-          <img :src="course.course_image" :alt="course.name">
-        </div>
-      </div>
-    </section>
+  <div class="result-list-container">
 
-    <div class="container layout-container">
-      <main class="course-main">
-        <nav class="content-nav">
-          <a href="#intro" :class="{ active: activeTab === 'intro' }" @click="activeTab = 'intro'">강좌 소개</a>
-          <a href="#reviews" :class="{ active: activeTab === 'reviews' }" @click="activeTab = 'reviews'">수강평</a>
-        </nav>
-
-        <section v-show="activeTab === 'intro'" id="intro" class="detail-section">
-          <h2>강좌 소개</h2>
-          <div class="iframe-wrapper">
-            <iframe
-              ref="summaryIframe"
-              :srcdoc="wrappedHtml"
-              class="summary-iframe"
-              @load="resizeIframe"
-              scrolling="no"
-              frameborder="0"
-            ></iframe>
-          </div>
-        </section>
-
-        <section v-if="activeTab === 'reviews'" id="reviews" class="detail-section">
-          <CourseReviewSection :course-id="route.params.id" />
-        </section>
-      </main>
-
-      <aside class="course-sidebar">
-        <div class="info-card">
-          <h3>수강 정보</h3>
-          <ul class="info-list">
-            <li><span>운영 기관</span> <strong>{{ course.org_name }}</strong></li>
-            <li><span>교수진</span> <strong>{{ course.professor }}</strong></li>
-            <li><span>분류</span> <strong>{{ course.classfy_name }} &gt; {{ course.middle_classfy_name }}</strong></li>
-            <li class="divider"></li>
-            <li><span>수강 기간</span> <strong>{{ course.study_start }} ~ {{ course.study_end }}</strong></li>
-            <li><span>신청 기간</span> <strong>{{ course.enrollment_start }} ~ {{ course.enrollment_end }}</strong></li>
-            <li class="divider"></li>
-            <li><span>총 주차</span> <strong>{{ course.week }}주 과정</strong></li>
-            <li><span>총 학습 시간</span> <strong>{{ formattedPlaytime }}</strong></li>
-            <li><span>이수증</span> <strong>{{ course.certificate_yn === 'Y' ? '발급 가능' : '해당 없음' }}</strong></li>
-          </ul>
-          <a :href="course.url" target="_blank" class="btn-external">K-MOOC 바로가기 ↗</a>
-        </div>
-      </aside>
+    <div v-if="isLoading" class="loading-container">
+      <div class="loading-spinner"></div>
+      <h2>AI 분석 진행 중...</h2>
+      <p>강좌 정보를 수집하고 맞춤 분석을 진행하고 있습니다. 잠시만 기다려주세요.</p>
     </div>
 
-    <section class="recommend-section container">
-      <div class="section-title">
-        <h2>이 강좌와 유사한 추천 강좌 ✨</h2>
-        <p>AI가 분석한 학습 맥락이 비슷한 강좌들입니다.</p>
+    <template v-else-if="isAnalyzed">
+      <div v-if="topRecommendation" class="comments-section">
+        <div class="ai-comment-box highlight">
+          <div class="bg-pattern"></div>
+
+          <div class="comment-content">
+            <h2 class="course-name-hero">
+              <span class="highlight-text">{{ topRecommendation.course_name }}</span>
+            </h2>
+            
+            <div class="comment-header">
+              <div class="crown-wrapper">
+                <span class="crown-icon">👑</span>
+                <div class="glow"></div>
+              </div>
+              <span class="comment-label">AI Pick! 최우수 추천 강좌</span>
+            </div>
+            
+            <div class="comment-text-wrapper">
+              <span class="quote-mark left">"</span>
+              <p class="comment-text">
+                {{ topRecommendation.recommendation_reason }}
+              </p>
+              <span class="quote-mark right">"</span>
+            </div>
+          </div>
+        </div>
       </div>
-      <div class="course-grid">
-        <CourseCard
-          v-for="rec in recommendedCourses"
-          :key="rec.id"
-          v-bind="rec"
+
+      <div class="cards-grid">
+        <AnalysisResultCard
+          v-for="res in results"
+          :key="res.id"
+          :result="res"
         />
       </div>
-    </section>
+
+      <p class="comment-note">※ AI 분석은 참고용이며 최종 결정은 학습자의 판단이 필요합니다.</p>
+    </template>
+
+    <div v-else class="guide-container">
+      <div class="guide-header">
+        <h2>AI 강좌 분석 사용 가이드</h2>
+        <p>복잡한 강좌 선택, AI가 나에게 딱 맞는 최적의 강좌를 추천해 드립니다.</p>
+      </div>
+
+      <div class="steps-grid">
+        <div class="step-item">
+          <div class="step-num">1</div>
+          <div class="step-content">
+            <h3>관심강좌 등록</h3>
+            <p>비교하고 싶은 강의를 먼저 <strong>관심강좌</strong>(위시리스트)로 등록해 주세요.</p>
+          </div>
+        </div>
+
+        <div class="step-item">
+          <div class="step-num">2</div>
+          <div class="step-content">
+            <h3>학습 목표 설정</h3>
+            <p>좌측 패널에 <strong>주당 학습 가능 시간</strong>과 구체적인 <strong>학습 목표</strong>를 입력하세요.</p>
+          </div>
+        </div>
+
+        <div class="step-item">
+          <div class="step-num">3</div>
+          <div class="step-content">
+            <h3>중요도 조절</h3>
+            <p>나에게 중요한 기준(실무, 이론 등)의 가중치를 <strong>0~5점</strong>으로 조절해주세요.</p>
+          </div>
+        </div>
+
+        <div class="step-item">
+          <div class="step-num">4</div>
+          <div class="step-content">
+            <h3>비교 대상 선택</h3>
+            <p>관심강좌에 등록돼 있는 강좌들 중에서 비교할 <strong>1~3개를 체크</strong>하세요.</p>
+          </div>
+        </div>
+
+        <div class="step-item highlight">
+          <div class="step-num">5</div>
+          <div class="step-content">
+            <h3>분석 시작</h3>
+            <p>모든 설정이 완료되었다면 좌측 하단의 <strong>[AI 강좌 비교 분석 시작]</strong> 버튼을 클릭하세요!</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch, nextTick } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
-import { getCourseDetail, getRecommendedCourses } from '@/api/courses';
-import { addWishlist, removeWishlist } from '@/api/mypage';
-import CourseCard from '@/components/common/CourseCard.vue';
-import CourseReviewSection from '@/components/course/CourseReviewSection.vue';
+import { computed } from 'vue';
+import AnalysisResultCard from '../components/comparison/AnalysisResultCard.vue';
 
-const route = useRoute();
-const router = useRouter();
-const activeTab = ref('intro');
-const course = ref(null);
-const recommendedCourses = ref([]);
-const summaryIframe = ref(null);
-
-// [핵심] iframe에 주입할 HTML 구성 (스타일 격리)
-const wrappedHtml = computed(() => {
-  const content = course.value?.raw_summary || 
-                  (course.value?.summary ? course.value.summary.replace(/\n/g, '<br>') : '강좌 소개가 없습니다.');
-  
-  return `
-    <!DOCTYPE html>
-    <html>
-      <head>
-        <meta charset="utf-8">
-        <style>
-          body { 
-            margin: 0; 
-            padding: 15px; 
-            font-family: 'Pretendard', -apple-system, sans-serif; 
-            line-height: 1.7; 
-            color: #374151; 
-            word-break: break-all;
-            overflow: hidden; 
-          }
-          /* 외부 고정 너비 강제 무력화 */
-          * { max-width: 100% !important; box-sizing: border-box !important; }
-          img { height: auto !important; display: block; margin: 15px auto; border-radius: 8px; }
-          table { width: 100% !important; border-collapse: collapse; margin: 20px 0; display: table; }
-          td, th { border: 1px solid #e5e7eb; padding: 10px; text-align: left; }
-          p { margin: 1em 0; }
-          a { color: #2563eb; }
-        </style>
-      </head>
-      <body>${content}</body>
-    </html>
-  `;
+const props = defineProps({
+  results: {
+    type: Array,
+    required: true
+  },
+  personalizedComments: {
+    type: Array,
+    default: () => []
+  },
+  isAnalyzed: {
+    type: Boolean,
+    default: false
+  },
+  isLoading: {
+    type: Boolean,
+    default: false
+  }
 });
 
-// [핵심] iframe 높이 자동 조절
-const resizeIframe = () => {
-  const iframe = summaryIframe.value;
-  if (iframe && iframe.contentWindow) {
-    // 렌더링 완료 후 높이 측정을 위해 약간의 지연(nextTick) 적용
-    nextTick(() => {
-      const doc = iframe.contentDocument || iframe.contentWindow.document;
-      const height = doc.body.scrollHeight;
-      iframe.style.height = height + 'px';
-    });
-  }
-};
-
-// VOD 시간 포맷팅
-const formattedPlaytime = computed(() => {
-  const seconds = course.value?.course_playtime || 0;
-  const totalMinutes = Math.round(seconds / 60);
-  const hours = Math.floor(totalMinutes / 60);
-  const minutes = totalMinutes % 60;
-  if (hours > 0) return minutes > 0 ? `${hours}시간 ${minutes}분` : `${hours}시간`;
-  return `${minutes}분`;
-});
-
-// 수강신청 버튼 (외부 링크 이동)
-const handleEnroll = () => {
-  if (course.value && course.value.url) {
-    window.open(course.value.url, '_blank');
-  } else {
-    alert('수강신청 링크가 없습니다.');
-  }
-};
-
-// 찜하기 토글
-const handleWishlistToggle = async () => {
-  if (!course.value) return;
-
-  try {
-    if (course.value.is_wished) {
-      await removeWishlist(course.value.id);
-      course.value.is_wished = false;
-    } else {
-      await addWishlist(course.value.id);
-      course.value.is_wished = true;
-    }
-  } catch (error) {
-    console.error('찜하기 실패:', error);
-    // 401 Unauthorized 에러 처리 (로그인 필요)
-    if (error.response && error.response.status === 401) {
-      if (confirm('로그인이 필요한 기능입니다. 로그인 페이지로 이동할까요?')) {
-        router.push(`/login?redirect=${route.fullPath}`);
-      }
-    } else {
-      alert('찜하기 처리에 실패했습니다.');
-    }
-  }
-};
-
-const fetchData = async (courseId) => {
-  if (!courseId) return;
-  try {
-    const detailRes = await getCourseDetail(courseId);
-    course.value = detailRes.data;
-
-    const recommendRes = await getRecommendedCourses(courseId);
-    recommendedCourses.value = recommendRes.data;
-    
-    activeTab.value = 'intro';
-    window.scrollTo(0, 0);
-  } catch (error) {
-    console.error("데이터 로드 실패:", error);
-  }
-};
-
-watch(() => route.params.id, (newId) => fetchData(newId));
-
-// 창 크기 조절 시 iframe 높이 재계산
-onMounted(() => {
-  fetchData(route.params.id);
-  window.addEventListener('resize', resizeIframe);
+// 1위 추천 코멘트 (results[0]에 해당하는 코멘트)
+const topRecommendation = computed(() => {
+  return props.personalizedComments.length > 0 ? props.personalizedComments[0] : null;
 });
 </script>
 
 <style scoped>
-/* 컨테이너 및 기본 레이아웃 */
-.container { max-width: 1200px; margin: 0 auto; padding: 0 20px; }
-.layout-container { display: grid; grid-template-columns: 1fr 350px; gap: 40px; margin: 40px auto 80px; }
+.result-list-container {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
 
-/* [수정] iframe 스타일 */
-.iframe-wrapper {
-  width: 100%;
+/* Loading State */
+.loading-container {
+  background: white;
+  border: 1px solid var(--border);
+  border-radius: 24px;
+  padding: 60px 40px;
+  text-align: center;
+}
+
+.loading-spinner {
+  width: 50px;
+  height: 50px;
+  border: 4px solid #f3f4f6;
+  border-top: 4px solid var(--primary);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 24px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.loading-container h2 {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text-main);
+  margin-bottom: 12px;
+}
+
+.loading-container p {
+  font-size: 14px;
+  color: var(--text-sub);
+}
+
+/* Comments Section */
+.comments-section {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* AI Comment Box (Redesigned) */
+.ai-comment-box.highlight {
+  background: linear-gradient(135deg, #fff5f6 0%, #ffffff 100%);
+  border: 2px solid #ffcdd4;
+  border-radius: 24px;
+  padding: 48px 32px;
+  position: relative;
   overflow: hidden;
-  background: white;
-  border-radius: 12px;
+  box-shadow: 0 12px 40px rgba(246, 73, 89, 0.15);
+  text-align: center;
 }
 
-.summary-iframe {
-  width: 100%;
-  min-height: 400px;
-  border: none;
-  display: block;
-  transition: height 0.2s ease;
+/* 배경 패턴 */
+.ai-comment-box .bg-pattern {
+  position: absolute;
+  top: -50px;
+  right: -50px;
+  width: 300px;
+  height: 300px;
+  background-image: radial-gradient(circle, rgba(246, 73, 89, 0.05) 2px, transparent 2px);
+  background-size: 20px 20px;
+  opacity: 0.5;
+  z-index: 0;
+  transform: rotate(30deg);
+  pointer-events: none;
 }
 
-/* 히어로 섹션 */
-.course-hero { background-color: #f9fafb; padding: 60px 0; border-bottom: 1px solid #e5e7eb; }
-.hero-content { display: flex; justify-content: space-between; align-items: center; gap: 40px; }
-.course-title { font-size: 2.5rem; font-weight: 800; color: #111827; margin-bottom: 20px; }
-.rating-badge { background: #fef3c7; color: #d97706; padding: 4px 12px; border-radius: 20px; font-weight: 700; }
-.hero-image img { width: 480px; height: 270px; object-fit: cover; border-radius: 16px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); }
-
-/* 액션 버튼 스타일 */
-.action-buttons {
-  display: flex;
-  gap: 12px;
-  margin-top: 30px;
+.comment-content {
+  position: relative;
+  z-index: 1;
 }
 
-.btn-enroll { 
-  background: #2563eb; 
-  color: white; 
-  padding: 14px 28px; 
-  border-radius: 8px; 
-  font-weight: 700; 
-  border: none; 
-  cursor: pointer; 
-  font-size: 1rem;
-  transition: background 0.2s;
+/* 강의명 HERO 스타일 개선 */
+.course-name-hero {
+  font-size: 32px;
+  font-weight: 900;
+  color: #1a1a1a;
+  margin: 0 0 24px 0;
+  line-height: 1.3;
+  word-break: keep-all;
+  letter-spacing: -0.5px;
 }
-.btn-enroll:hover { background: #1d4ed8; }
 
-.btn-wishlist {
-  background: white;
-  color: #374151;
-  border: 1px solid #d1d5db;
-  padding: 14px 24px;
-  border-radius: 8px;
-  font-weight: 600;
-  cursor: pointer;
-  font-size: 1rem;
-  display: flex;
+.course-name-hero .highlight-text {
+  background: linear-gradient(to top, rgba(246, 73, 89, 0.15) 35%, transparent 35%);
+  padding: 0 4px;
+}
+
+/* 라벨 & 아이콘 스타일 개선 */
+.comment-header {
+  display: inline-flex;
   align-items: center;
-  gap: 8px;
-  transition: all 0.2s;
-}
-.btn-wishlist:hover {
-  background: #f3f4f6;
-  border-color: #9ca3af;
-}
-.btn-wishlist.active {
-  border-color: #e11d48;
-  color: #e11d48;
-  background: #fff1f2;
+  gap: 10px;
+  margin-bottom: 32px;
+  background: white;
+  padding: 10px 24px;
+  border-radius: 50px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+  border: 1px solid #ffe4e6;
 }
 
-/* 네비게이션 및 기타 */
-.content-nav { display: flex; gap: 30px; border-bottom: 2px solid #f3f4f6; margin-bottom: 30px; }
-.content-nav a { padding: 15px 5px; text-decoration: none; color: #6b7280; font-weight: 600; border-bottom: 2px solid transparent; cursor: pointer; }
-.content-nav a.active { color: #2563eb; border-bottom-color: #2563eb; }
-.info-card { background: white; border: 1px solid #e5e7eb; padding: 30px; border-radius: 16px; position: sticky; top: 20px; }
-.info-list { list-style: none; padding: 0; }
-.info-list li { display: flex; justify-content: space-between; margin-bottom: 15px; font-size: 0.95rem; }
-.divider { height: 1px; background: #e5e7eb; margin: 15px 0; list-style: none; }
-.btn-external { display: block; width: 100%; text-align: center; padding: 12px; background: #f3f4f6; color: #4b5563; text-decoration: none; border-radius: 8px; font-weight: 600; margin-top: 20px; }
-.btn-external:hover { background: #e5e7eb; }
-.course-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 24px; margin-top: 30px; }
+.crown-wrapper {
+  position: relative;
+}
 
-/* 반응형 */
-@media (max-width: 1024px) {
-  .hero-content { flex-direction: column-reverse; align-items: stretch; }
-  .hero-image img { width: 100%; height: auto; }
-  .layout-container { grid-template-columns: 1fr; }
+.crown-icon {
+  font-size: 24px;
+  animation: bounce 2s infinite;
+  display: block;
+}
+
+.crown-wrapper .glow {
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  width: 30px; height: 30px;
+  background: radial-gradient(circle, rgba(246, 73, 89, 0.4) 0%, transparent 70%);
+  animation: pulse 2s infinite;
+  z-index: -1;
+}
+
+@keyframes bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
+}
+@keyframes pulse {
+  0% { opacity: 0.5; transform: translate(-50%, -50%) scale(1); }
+  50% { opacity: 1; transform: translate(-50%, -50%) scale(1.2); }
+  100% { opacity: 0.5; transform: translate(-50%, -50%) scale(1); }
+}
+
+.comment-label {
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--primary);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+/* 추천 코멘트 텍스트 래퍼 */
+.comment-text-wrapper {
+  position: relative;
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 0 30px;
+}
+
+.quote-mark {
+  font-size: 60px;
+  color: rgba(246, 73, 89, 0.2);
+  position: absolute;
+  font-family: serif;
+  line-height: 1;
+  user-select: none;
+}
+
+.quote-mark.left {
+  top: -20px;
+  left: 0;
+}
+
+.quote-mark.right {
+  bottom: -40px;
+  right: 0;
+  transform: rotate(180deg);
+}
+
+.comment-text {
+  font-size: 20px;
+  font-weight: 600;
+  color: #2d2d2d;
+  line-height: 1.7;
+  margin-bottom: 0;
+  word-break: keep-all;
+}
+
+/* 코멘트 내 강조 (v-html 사용 시 적용됨) */
+.comment-text :deep(strong) {
+  color: var(--primary);
+  font-weight: 800;
+  box-shadow: inset 0 -8px 0 rgba(246, 73, 89, 0.1);
+}
+
+.comment-note {
+  font-size: 12px;
+  color: #999;
+  text-align: center;
+  margin-top: 40px;
+}
+
+/* Cards Grid */
+.cards-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 32px;
+}
+
+@media (min-width: 1280px) {
+  .cards-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* Guide Container */
+.guide-container {
+  background: white;
+  border: 1px solid var(--border);
+  border-radius: 24px;
+  padding: 40px;
+  text-align: center;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.03);
+}
+
+.guide-header h2 {
+  font-size: 24px;
+  font-weight: 800;
+  color: var(--text-main);
+  margin-bottom: 10px;
+}
+
+.guide-header p {
+  color: var(--text-sub);
+  font-size: 16px;
+  margin-bottom: 40px;
+}
+
+.steps-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 15px;
+  text-align: left;
+}
+
+.step-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 15px;
+  padding: 20px;
+  background: #f9f9f9;
+  border-radius: 12px;
+  transition: 0.2s;
+}
+
+.step-item:hover {
+  background: white;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+  transform: translateY(-2px);
+}
+
+.step-item.highlight {
+  background: #fff0f2;
+  border: 1px solid #ffdce0;
+}
+
+.step-num {
+  width: 28px; height: 28px;
+  background: var(--text-main);
+  color: white;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 800;
+  font-size: 14px;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.step-item.highlight .step-num {
+  background: var(--primary);
+}
+
+.step-content h3 {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-main);
+  margin-bottom: 6px;
+}
+
+.step-content p {
+  font-size: 13px;
+  color: var(--text-sub);
+  line-height: 1.5;
+  margin: 0;
+}
+
+.step-content strong {
+  color: var(--primary-dark);
 }
 </style>
