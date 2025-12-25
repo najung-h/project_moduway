@@ -8,7 +8,7 @@
 
     <div v-else-if="post" class="post-container">
 
-      <div class="post-category-tag">{{ getBoardKoreanName(post.board.name) }}</div>
+      <div class="post-category-tag" v-if="post.board">{{ getBoardKoreanName(post.board.name) }}</div>
       <h1 class="post-header-title">
         {{ post.title }}
       </h1>
