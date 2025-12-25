@@ -8,6 +8,34 @@
 - 모든 API는 JSON 형식으로 요청/응답합니다.
 - 인증이 필요한 API는 Authorization 헤더에 토큰을 포함해야 합니다.
 
+```markdown
+1. 인증 (Accounts) - /api/v1/accounts/
+- 회원가입, 로그인, 로그아웃
+- Google 소셜 로그인
+- 비밀번호 변경 및 재설정
+2. 마이페이지 (Mypage) - /api/v1/mypage/
+- 대시보드 통계
+- 강좌 관리 (수강 목록, 수강평)
+- 위시리스트
+- 커뮤니티 활동 조회
+- 스크랩 목록
+- 프로필 관리
+3. 커뮤니티 (Community) - /api/v1/community/
+- 게시판 목록
+- 게시글 CRUD
+- 게시글 검색
+- 댓글/대댓글 관리
+- 좋아요 & 스크랩
+4. 강좌 (Courses) - /api/v1/courses/
+- 강좌 목록/상세 조회
+- 리뷰 목록
+- 추천 강좌
+- 상세한 쿼리 파라미터 및 정렬 옵션
+5. 강좌 비교 (Comparisons) - /api/v1/comparisons/
+- 강좌 비교 분석
+- AI 평가, 리뷰 요약, 감성분석
+```
+
 <br>
 
 ## 1. 인증 (Accounts)
