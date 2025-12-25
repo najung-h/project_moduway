@@ -1,9 +1,9 @@
 <template>
-  <RouterLink :to="`/courses/${id}`" class="course-card-link">
+  <RouterLink :to="computedLink" class="course-card-link">
     <div class="course-card">
       <div class="card-thumb">
         <span class="badge" :style="{ backgroundColor: badgeColor }">{{ displayStatus }}</span>
-        
+
         <img v-if="course_image" :src="course_image" :alt="name" />
         <div v-else class="placeholder-thumb">THUMBNAIL</div>
       </div>
@@ -14,6 +14,7 @@
           <span>{{ formattedProfessor }}</span>
           <span>{{ displayPeriod }}</span>
         </div>
+        <slot name="actions"></slot>
       </div>
     </div>
   </RouterLink>
@@ -39,7 +40,16 @@ const props = defineProps({
 
   // 선택적 필드
   status: { type: String, default: '접수중' },
-  badgeColor: { type: String, default: 'var(--primary-dark)' }
+  badgeColor: { type: String, default: 'var(--primary-dark)' },
+
+  // 라우팅 경로 (기본값: 강좌 상세 페이지)
+  linkTo: { type: String, default: '' }
+});
+
+// 라우팅 경로 계산
+const computedLink = computed(() => {
+  // linkTo가 제공되면 그것을 사용, 아니면 기본 강좌 상세 페이지로
+  return props.linkTo || `/courses/${props.id}`;
 });
 
 // period 계산
